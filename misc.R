@@ -144,12 +144,13 @@ midElev <- (quantile(clim.tab[clim.tab$dist < clim.tab$cutoff, ]$Elev,.99, na.rm
 clim.tab$wt <- ifelse(clim.tab$dist > clim.tab$cutoff, 0, clim.tab$wt)
 clim.tab$wt.low <- clim.tab$wt * e.wtlow(clim.tab$Elev, midElev)
 clim.tab$wt.high <- clim.tab$wt * e.wthigh(clim.tab$Elev, midElev)
-
-
-model.1A <- summary(lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt.low, na.action = 'na.omit'))
-model.1B <- summary(lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt.high))model.1B <- summary(lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt.high))
+clim.tab.s <-  clim.tab[!clim.tab$wt <= 0,]
+model.1A <- lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt.low, na.action=na.exclude)
+model.1B <- lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt.high, na.action=na.exclude)
 f.t.meanA = model.1A$coefficients[2]
 f.t.meanB = model.1B$coefficients[2]
+
+plot(t.mean ~ Elev, data = clim.tab)
 
 
 model.2.1A <- lm(t.max ~ Elev + Lat+ Lon, data = clim.tab, weights = clim.tab$wt.low)
