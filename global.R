@@ -161,8 +161,10 @@ GetNetSolar <- function(Ra, Elev, th, tl){
 
 month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
 pre.tab <- readRDS('data/pre.tab.RDS')
-
 pre.tab$Station_Name <- paste(pre.tab$Station_Name, pre.tab$State)
+listofstations <- pre.tab[!pre.tab$Station_Name %in% c(' ',''),]
+
+
 cols.th <- colnames(pre.tab[,grep("^th01$", colnames(pre.tab)):grep("^th12$", colnames(pre.tab))])
 cols.tl <- colnames(pre.tab[,grep("^tl01$", colnames(pre.tab)):grep("^tl12$", colnames(pre.tab))])
 cols.p <- colnames(pre.tab[,grep("^p01$", colnames(pre.tab)):grep("^p12$", colnames(pre.tab))])
@@ -171,44 +173,3 @@ cols.tl.2080 <- colnames(pre.tab[,grep("^tl.2080.01$", colnames(pre.tab)):grep("
 cols.p.2080 <- colnames(pre.tab[,grep("^p.2080.01$", colnames(pre.tab)):grep("^p.2080.12$", colnames(pre.tab))])
 
 
-#Choose Warming or not (T/F) ----
-warming = F
-
-
-
-clim.tab.fill <- pre.tab
-if(warming == T){
-  clim.tab.fill <- clim.tab.fill[, !colnames(clim.tab.fill) %in% c(cols.th, cols.tl, cols.p)]
-  colnames(clim.tab.fill)[colnames(clim.tab.fill) %in% cols.th.2080] <- cols.th
-  colnames(clim.tab.fill)[colnames(clim.tab.fill) %in% cols.tl.2080] <- cols.tl
-  colnames(clim.tab.fill)[colnames(clim.tab.fill) %in% cols.p.2080] <- cols.p
-}else{
-  clim.tab.fill <- clim.tab.fill[, !colnames(clim.tab.fill) %in% c(cols.th.2080, cols.tl.2080, cols.p.2080)]
-}
-
-if(is.null(clim.tab.fill$t01)){for (i in 1:12){
-  clim.tab.fill$x <- (clim.tab.fill[,paste0('th',month[i])] + clim.tab.fill[,paste0('tl',month[i])]) /2
-  colnames(clim.tab.fill)[colnames(clim.tab.fill) == 'x'] <- paste0("t", month[i])
-}
-}
-colrange = grep("^t01$", colnames(clim.tab.fill)):grep("^t12$", colnames(clim.tab.fill))
-clim.tab.fill$t.mean <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='mean')
-clim.tab.fill$t.min <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='min')
-clim.tab.fill$t.max <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='max')
-colrange = grep("^th01$", colnames(clim.tab.fill)):grep("^th12$", colnames(clim.tab.fill))
-clim.tab.fill$th.mean <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='mean')
-colrange = grep("^tl01$", colnames(clim.tab.fill)):grep("^tl12$", colnames(clim.tab.fill))
-clim.tab.fill$tl.mean <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='mean')
-clim.tab.fill$tm.range <- t.trans(clim.tab.fill$t.max - clim.tab.fill$t.min)
-clim.tab.fill$td.range <- t.trans(clim.tab.fill$th.mean - clim.tab.fill$tl.mean)
-colrange = grep("^p01$", colnames(clim.tab.fill)):grep("^p12$", colnames(clim.tab.fill))
-clim.tab.fill$p.sum <- p.trans(apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='sum'))
-colrange = grep("^p01$", colnames(clim.tab.fill)):grep("^p12$", colnames(clim.tab.fill))
-clim.tab.fill$p.max <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='max')
-clim.tab.fill$p.min <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='min')
-clim.tab.fill$p.ratio <- r.trans(clim.tab.fill$p.min/(clim.tab.fill$p.max+0.000001))
-
-#----
-
-clim.tab <- subset(clim.tab.fill, !is.na(p.sum), select=c("Station_ID","Station_Name","State","Lat","Lon","Elev",
-                                                          "t.mean","t.max", "t.min","tm.range","th.mean","td.range","p.sum","p.ratio"))

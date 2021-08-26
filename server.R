@@ -8,10 +8,10 @@ library(plyr)
 ######
 # Define server logic
 shinyServer(function(input, output, session) {
-  
+  rv <- reactiveValues(my_text = "") 
   output$stationselect = renderUI({
     
-    liststations1 <- subset(clim.tab.fill,
+    liststations1 <- subset(listofstations,
                         Lat >= input$lat[1] &
                           Lat <= input$lat[2] &
                           Lon >= input$lon[1] &
@@ -70,6 +70,41 @@ shinyServer(function(input, output, session) {
   })
   
   output$climplot <- renderPlot({ 
+    clim.tab.fill <- pre.tab
+    #Choose Warming or not (T/F) ----
+    warming = input$timeperiod =='2080'
+    
+    if(warming){
+      clim.tab.fill <- clim.tab.fill[, !colnames(clim.tab.fill) %in% c(cols.th, cols.tl, cols.p)]
+      colnames(clim.tab.fill)[colnames(clim.tab.fill) %in% cols.th.2080] <- cols.th
+      colnames(clim.tab.fill)[colnames(clim.tab.fill) %in% cols.tl.2080] <- cols.tl
+      colnames(clim.tab.fill)[colnames(clim.tab.fill) %in% cols.p.2080] <- cols.p
+    }else{
+      clim.tab.fill <- clim.tab.fill[, !colnames(clim.tab.fill) %in% c(cols.th.2080, cols.tl.2080, cols.p.2080)]
+    }
+    
+    if(is.null(clim.tab.fill$t01)){for (i in 1:12){
+      clim.tab.fill$x <- (clim.tab.fill[,paste0('th',month[i])] + clim.tab.fill[,paste0('tl',month[i])]) /2
+      colnames(clim.tab.fill)[colnames(clim.tab.fill) == 'x'] <- paste0("t", month[i])
+    }
+    }
+    colrange = grep("^t01$", colnames(clim.tab.fill)):grep("^t12$", colnames(clim.tab.fill))
+    clim.tab.fill$t.mean <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='mean')
+    clim.tab.fill$t.min <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='min')
+    clim.tab.fill$t.max <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='max')
+    colrange = grep("^th01$", colnames(clim.tab.fill)):grep("^th12$", colnames(clim.tab.fill))
+    clim.tab.fill$th.mean <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='mean')
+    colrange = grep("^tl01$", colnames(clim.tab.fill)):grep("^tl12$", colnames(clim.tab.fill))
+    clim.tab.fill$tl.mean <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='mean')
+    clim.tab.fill$tm.range <- t.trans(clim.tab.fill$t.max - clim.tab.fill$t.min)
+    clim.tab.fill$td.range <- t.trans(clim.tab.fill$th.mean - clim.tab.fill$tl.mean)
+    colrange = grep("^p01$", colnames(clim.tab.fill)):grep("^p12$", colnames(clim.tab.fill))
+    clim.tab.fill$p.sum <- p.trans(apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='sum'))
+    colrange = grep("^p01$", colnames(clim.tab.fill)):grep("^p12$", colnames(clim.tab.fill))
+    clim.tab.fill$p.max <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='max')
+    clim.tab.fill$p.min <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='min')
+    clim.tab.fill$p.ratio <- r.trans(clim.tab.fill$p.min/(clim.tab.fill$p.max+0.000001))
+    
     
     #parameters
     selected <- input$stationselect
@@ -77,6 +112,14 @@ shinyServer(function(input, output, session) {
     
     station <- subset(clim.tab.fill,
                            clim.tab.fill$Station_Name %in% selected) [1,]
+
+    
+    
+
+    #----
+    
+
+    
     clim.tab <- subset(clim.tab.fill, !is.na(p.sum), select=c("Station_ID","Station_Name","State","Lat","Lon","Elev",
                                                               "t.mean","t.max", "t.min","tm.range","th.mean","td.range","p.sum","p.ratio"))
     
@@ -236,7 +279,7 @@ shinyServer(function(input, output, session) {
     climtab$I = (pmax(0,climtab$t)/5)^1.514#Thornthwaite
     I <- sum(climtab$I); climtab$I <- NULL#Thornthwaite
     a = 0.49239+1792*10^-5*I-771*10^-7*I^2+675*10^-9*I^3#Thornthwaite
-    cf <- 0.92/1.26 #Correction factor to make for forest and mixed landuse vegetation instead of short grass, based on alpha of Priestly-Taylor equation
+    cf <- 1#0.92/1.26 #Correction factor to make for forest and mixed landuse vegetation instead of short grass, based on alpha of Priestly-Taylor equation
 
     climtab$e.tw = 16*(10*pmax(climtab$t,0)/I)^a*(climtab$Dl/12)*(Days[climtab$Mon]/30)#Thornthwaite
 
@@ -270,6 +313,62 @@ shinyServer(function(input, output, session) {
     Surplus <- max(MAP - AET, 0)
     PPETRatio <- MAP/(PET +0.0001)
     Mindex <- PPETRatio/(PPETRatio+1)
+    #classify ----
+    Seasonalilty <- ifelse(Deficit < 150 & PPETRatio>=1, "Isopluvial",
+                           ifelse(Surplus < 25 & PPETRatio < 0.5, ifelse(pAET < 75, "Isoxeric","Pluvioxeric"),
+                                  ifelse(pAET < 75,"Xerothermic","Pluviothermic")))
+    
+    
+    
+    
+    
+    
+    
+    MRegime <- ifelse(PPETRatio>=2,"Perhumid",
+                      ifelse(PPETRatio>=1.414,"Moist-Humid",
+                             ifelse(PPETRatio>=1,"Dry-Humid",
+                                    ifelse(PPETRatio>=0.707,"Moist-Subhumid",
+                                           ifelse(PPETRatio>=0.5,"Dry-Subhumid",
+                                                  ifelse(PPETRatio>=0.25,"Semiarid",
+                                                         ifelse(PPETRatio>=0.125,"Arid","Perarid"
+                                                         )))))))
+    
+    
+    BioTemperatureC <- 
+      ifelse(Tc >= 20 & Tclx >=5,"Meso-Tropical",
+             ifelse(Tc >= 15 & Tclx >=0,"Cryo-Tropical",
+                    ifelse(Tc >= 10 & Tclx >=-5,"Thermo-Sutropical",
+                           ifelse(Tc >= 5 & Tclx >=-10,"Meso-Subtropical",
+                                  ifelse(Tc >= 0 & Tclx >=-15,"Cryo-Subtropical",
+                                         ifelse(Tc >= -5 & Tclx >=-20,"Thermo-Temperate",
+                                                ifelse(Tc >= -10 & Tclx >=-25,"Meso-Temperate",
+                                                       ifelse(Tc >= -25 & Tclx >=-40,"Cryo-Temperate","Polar"
+                                                       ))))))))
+    
+    BioTemperatureW <- ifelse(Tg >= 24,"Hot (Lowland)",
+                              ifelse(Tg >= 18,"Warm (Premontane)",
+                                     ifelse(Tg >= 15,"Warm-Mild (Lower-Montane)",
+                                            ifelse(Tg >= 12,"Cool-Mild (Upper-Montane)",
+                                                   ifelse(Tg >= 6,"Cool (Subalpine)","Cold (Alpine)"
+                                                   )))))
+    Climatetext<-paste(BioTemperatureW," ",BioTemperatureC,", ",MRegime," ",Seasonalilty, sep="" )
+    
+    #assemble supplemental summary
+    
+    my_text1 <- paste("Lat: ",round(Lat,digits=2),"  Lon:", round(Lon,digits=2),"  Elev: ",round(Elev,digits=0)," m")
+    metric <- paste("Lat: ",round(Lat,digits=2),"°;  Lon: ", round(Lon,digits=2),"°;  Elev: ",round(Elev,digits=0)," m","\n",
+                    "MAAT: ",round(MAAT,digits=1),"°C;  ","MAP: ", round(MAP,0)," mm  ","\n",
+                    "Warm Month: ", round(Tw,1),"°C; High: ",round(Twh,1),"°C; ", "Cold Month: ", round(Tc,1),"°C; Low: ",round(Tcl,1),"°C","\n",
+                    "Growing Season Temperature: ",round(Tg,digits=1),"°C; Annual Extreme Low: ", round(Tclx,1),"°C","\n",
+                    "P/PET: ", round(PPETRatio,2),"; Surplus: ", round(Surplus,0)," mm; Deficit: ", round(Deficit,0)," mm; Peak AET: ", round(pAET,0), " mm","\n", Climatetext,sep="")
+    #, "SPindex: ",round(SPindex,2),"; Cindex: ",round(Cindex,2),"\n"
+    retro <- paste("Lat: ",round(Lat,digits=2),"°;  Lon: ", round(Lon,digits=2),"°;  Elev: ",round(Elev/0.3048,digits=0)," ft","\n",
+                   "Annual Temperature: ",round(MAAT*1.8+32,digits=0),"°F;  ","Annual Precipitation: ", round(MAP/25.4,0)," in  ","\n",
+                   "Warm Month: ", round(Tw*1.8+32,0),"°F; High: ",round(Twh*1.8+32,0),"°F; ", "Cold Month: ", round(Tc*1.8+32,0),"°F; Low: ",round(Tcl*1.8+32,0),"°F","\n",
+                   "Growing Season Temperature: ",round(Tg*1.8+32,digits=0),"°F; Annual Extreme Low: ", round(Tclx*1.8+32,0),"°F","\n",
+                   "P/PET: ", round(PPETRatio,2),"; Surplus: ", round(Surplus/25.4,0)," in; Deficit: ", round(Deficit/25.4,0)," in; Peak AET: ", round(pAET/25.4,0), " in","\n", Climatetext,sep="")
+    my_text2 <- if(input$RadioUnits == 'USC'){retro} else {metric}
+    rv$my_text2 <- my_text2
     
     
     climplot <- ggplot(climtab, aes(x=Mon)) + 
@@ -296,7 +395,11 @@ shinyServer(function(input, output, session) {
       coord_fixed(ratio = 1/9,xlim = c(1,12), ylim = c(-20, 43))+
       labs(title = paste("Climate of ",station$Station_Name, ": ", sep=""))# ,  subtitle = my_text1)
     
-    climplot
+   climplot
+    # plot(t~e, climtab, main=warming)
     
+  })
+  output$Climtext = renderText({ 
+    rv$my_text2
   })
   })

@@ -10,7 +10,13 @@ fluidPage(
     htmlOutput("country"),
     htmlOutput("setelev"),
     htmlOutput("lat"),
-    htmlOutput("lon")
+    htmlOutput("lon"),
+    checkboxInput("saveselect", label = "Compare Station", value = FALSE),
+    radioButtons("timeperiod", label = ("Time Period"),
+                 choices = list('1961-1990 Normals' = '1990', 
+                                '+2C Projections' = '2080'), 
+                 selected = '1990')
+    
 
 
   ),
@@ -27,9 +33,7 @@ fluidPage(
       
       
     ),
-      column(width = 2,
-             checkboxInput("saveselect", label = "Compare Station", value = FALSE)
-      ),
+      
     column(width = 5,
            radioButtons("RadioPET", label = ("PET Method"),
                         choiceNames = list(HTML("<font size=-3>Schmidt"), 
@@ -41,7 +45,7 @@ fluidPage(
                                            HTML('Turc'),
                                            HTML('Hamon')
                         ), 
-                        choiceValues = list('gs','pt','ho','pt','pm','hs','tc','hm'),
+                        choiceValues = list('gs','tw','ho','pt','pm','hs','tc','hm'),
                         selected = 'gs'),
            HTML("</font>")
                ),
@@ -63,7 +67,7 @@ fluidPage(
            HTML("</font>")
     )),
     fluidRow(
-      HTML("<font size=-2>Based on 1981-2010 Climatic Normals. Error bars on temperature and precipitation are the 20th and 80th percentiles for the 30 years of data for a single station. Other graphs show each year as individual points. Click here for more information about the "),
+      HTML("<font size=-2>Based on Gridded 1961-1990 Climatic Normals and estimated 2080 projections (WorldClim2). Error bars on temperature and precipitation are the 20th and 80th percentiles relative to annual variability in 1981-2010 data station records. Other graphs show each year as individual points. Click here for more information about the "),
                   tags$a(href="https://phytoclast.github.io/ClimateClassification/", "climate classification"),
                   HTML(" used above.</font>")
            )
