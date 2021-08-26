@@ -163,6 +163,7 @@ month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
 pre.tab <- readRDS('data/pre.tab.RDS')
 pre.tab$Station_Name <- paste(pre.tab$Station_Name, pre.tab$State)
 listofstations <- pre.tab[!pre.tab$Station_Name %in% c(' ',''),]
+clim.tab.fill <- pre.tab
 
 
 cols.th <- colnames(pre.tab[,grep("^th01$", colnames(pre.tab)):grep("^th12$", colnames(pre.tab))])
