@@ -6,7 +6,6 @@ library(plyr)
 Norms2010 <- readRDS(file='data/Norms2010.RDS')
 monind <- c(12,1:12,1)
 savedselect <- readRDS(file='data/savedselect.RDS')
-DaysMonth$declination <- 0.409*sin(2*3.141592*DaysMonth$Day_/365-1.39)
 
 lakes <- readRDS(file='data/lakes.RDS')
 states <- readRDS(file='data/states.RDS')
@@ -24,7 +23,6 @@ Norms2010<- Norms2010[,c('Station_ID','Station_Name', 'State', 'Latitude', 'Long
                          "tl07", "tl08", "tl09", "tl10", "tl11", "tl12",
                          "pp01", "pp02", "pp03", "pp04", "pp05", "pp06",
                          "pp07", "pp08", "pp09", "pp10", "pp11","pp12")]
-
 
 
 #functions ---- 
@@ -163,6 +161,7 @@ GetNetSolar <- function(Ra, Elev, th, tl){
 
 month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
 pre.tab <- readRDS('data/pre.tab.RDS')
+
 pre.tab$Station_Name <- paste(pre.tab$Station_Name, pre.tab$State)
 cols.th <- colnames(pre.tab[,grep("^th01$", colnames(pre.tab)):grep("^th12$", colnames(pre.tab))])
 cols.tl <- colnames(pre.tab[,grep("^tl01$", colnames(pre.tab)):grep("^tl12$", colnames(pre.tab))])

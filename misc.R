@@ -3,9 +3,8 @@ library(plyr)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 #Global -----
 Norms2010 <- readRDS(file='data/Norms2010.RDS')
-DaysMonth <- readRDS(file='data/DaysMonth.RDS')
+monind <- c(12,1:12,1)
 savedselect <- readRDS(file='data/savedselect.RDS')
-DaysMonth$declination <- 0.409*sin(2*3.141592*DaysMonth$Day_/365-1.39)
 
 lakes <- readRDS(file='data/lakes.RDS')
 states <- readRDS(file='data/states.RDS')
@@ -70,6 +69,64 @@ t.vert <-  function(tr1){
   tr = 2^(tr1)-0.0001
   return(tr)
 }
+XtremLow <- function(Tcl, Lat, Lon, Elev){
+  pacificsouth <- 1/((((Lat - -22.7)/13)^2 + ((Lon - -82.3)/14)^2)^2+1)
+  amazon2 <- 1/((((Lat - -10.2)/5)^2 + ((Lon - -59.9)/10)^2)^2+1)
+  amazon1 <- 1/((((Lat - -2.8)/14)^2 + ((Lon - -61.3)/19)^2)^2+1)
+  pacificcent <- 1/((((Lat - 4.1)/21)^2 + ((Lon - -122.4)/41)^2)^2+1)
+  mexico <- 1/((((Lat - 26)/6)^2 + ((Lon - -98.4)/12)^2)^2+1)
+  florida <- 1/((((Lat - 27.5)/4)^2 + ((Lon - -81.1)/8)^2)^2+1)
+  pacificnorth <- 1/((((Lat - 32.9)/26)^2 + ((Lon - -145)/27)^2)^2+1)
+  oklahoma <- 1/((((Lat - 33.6)/4)^2 + ((Lon - -98.4)/8)^2)^2+1)
+  arizona <- 1/((((Lat - 34)/12)^2 + ((Lon - -113.1)/8)^2)^2+1)
+  atlantic <- 1/((((Lat - 34)/15)^2 + ((Lon - -60.7)/19)^2)^2+1)
+  himalayas <- 1/((((Lat - 35.3)/6)^2 + ((Lon - 91.3)/13)^2)^2+1)
+  kentucky <- 1/((((Lat - 38.5)/3)^2 + ((Lon - -87.6)/9)^2)^2+1)
+  detroit <- 1/((((Lat - 41.8)/3)^2 + ((Lon - -82.6)/4)^2)^2+1)
+  ontario <- 1/((((Lat - 44.6)/2)^2 + ((Lon - -79.2)/6)^2)^2+1)
+  montana <- 1/((((Lat - 45.4)/5)^2 + ((Lon - -111.8)/10)^2)^2+1)
+  minn <- 1/((((Lat - 47.6)/6)^2 + ((Lon - -92.6)/12)^2)^2+1)
+  hudson <- 1/((((Lat - 60)/7)^2 + ((Lon - -87)/34)^2)^2+1)
+  siberia <- 1/((((Lat - 61.2)/20)^2 + ((Lon - 105.7)/39)^2)^2+1)
+  california <- 1/((((Lat - 34.8)/9)^2 + ((Lon - -128.2)/9)^2)^2+1)
+  washington <- 1/((((Lat - 46)/5)^2 + ((Lon - -126.6)/5)^2)^2+1)
+  colorado <- 1/((((Lat - 38.3)/2)^2 + ((Lon - -108.8)/3)^2)^2+1)
+  hawaii <- 1/((((Lat - 21.3)/7)^2 + ((Lon - -157.5)/11)^2)^2+1)
+  chess <- 1/((((Lat - 37)/3)^2 + ((Lon - -74)/3)^2)^2+1)
+  
+  Tclx<-	-9.171	+
+    Tcl *	1.202	+
+    Lat *	-0.04149	+
+    Elev *	0.0008691	+
+    Lat * Elev *	-0.00002455	+
+    pacificsouth *	-1.792	+
+    amazon2 *	2.573	+
+    amazon1 *	-1.014	+
+    pacificcent *	-0.749	+
+    mexico *	-0.8227	+
+    florida *	-3.557	+
+    pacificnorth *	-1.246	+
+    oklahoma *	0.1758	+
+    arizona *	2.605	+
+    chess *	0.8347	+
+    atlantic *	0.2967	+
+    himalayas *	-1.814	+
+    kentucky *	-2.644	+
+    detroit *	0	+
+    ontario *	-2.314	+
+    montana *	-4.415	+
+    minn *	1.136	+
+    hudson *	-5.154	+
+    siberia *	-3.797	+
+    california *	4.48	+
+    washington *	3.597	+
+    colorado *	1.458	+
+    hawaii *	6.673	
+  return(Tclx)}
+Days <- c(31.00, 28.25, 31.00, 30.00, 31.00, 30.00, 31.00, 31.00, 30.00, 31.00, 30.00, 31.00)
+DayNumber <- c(16.000,45.625,75.250,106.125,136.250,166.750,197.250,228.250,258.750,289.250,319.750,350.250)
+dcl <- 0.409*sin(2*3.141592*DayNumber/365-1.39)
+
 GetSolarRad <- function(Month, Lat){
   dcl <- c(-0.36716856, -0.23248978, -0.03864644,  0.17304543,  0.33397508,  0.40733259,  0.37096065,  0.23176540,  0.03163222, -0.17702222, -0.33798947, -0.40790729)
   declination <- dcl[Month]
@@ -86,6 +143,12 @@ GetDayLength<- function(Month, Lat){
   
   Dl <- ifelse(Lat + declination*360/2/3.141592 > 89.16924, 24, ifelse(Lat - declination*360/2/3.141592 >= 90, 0, (atan(-((sin(-0.83/360*2*3.141592)-sin(declination)*sin(Lat/360*2*3.141592))/(cos(declination)*cos(Lat/360*2*3.141592)))/(-((sin(-0.83/360*2*3.141592)-sin(declination)*sin(Lat/360*2*3.141592))/(cos(declination)*cos(Lat/360*2*3.141592)))*((sin(-0.83/360*2*3.141592)-sin(declination)*sin(Lat/360*2*3.141592))/(cos(declination)*cos(Lat/360*2*3.141592)))+1)^0.5)+2*atan(1))/3.141592*24))
   return(Dl)}
+
+GetSolar <- function(Ra, Elev, th, tl){
+  Vpmin = 0.6108*exp(17.27*tl/(tl+237.3)) #saturation vapor pressure kPa
+  Rso <- (0.75+2*10^-5*Elev)*Ra
+  Rs <- pmin(Rso,pmax(0.3*Rso, 0.14*(th-tl)^0.5*Ra)) # Estimate of normally measured solar radiation Rs/Rso is limited to 0.3-1 and using formula for Hargreaves with average constant of 0.175 for 0.16 inland and 0.19 for coastal, but reduced to 0.14 because of bias suggests it is 0.8 of the actual values at a few selected stations
+  return(Rs)}
 
 GetNetSolar <- function(Ra, Elev, th, tl){
   Vpmin = 0.6108*exp(17.27*tl/(tl+237.3)) #saturation vapor pressure kPa
@@ -281,8 +344,13 @@ climtab$Vpmax = 0.6108*exp(17.27*climtab$th/(climtab$th+237.3)) #saturation vapo
 climtab$Vpmin = 0.6108*exp(17.27*climtab$tl/(climtab$tl+237.3)) #saturation vapor pressure kPa
 climtab$Vp = (climtab$Vpmax+climtab$Vpmin)/2
 climtab$RH = climtab$Vpmin/climtab$Vp*100
-
-
+climtab$b <- ifelse(climtab$t >0, climtab$t,0)
+Tg <- pmax(mean(climtab[c(5:10),]$b),mean(climtab[c(1:4,11:12),]$b))
+Tc <- min(climtab$t)
+Tcl <-  min(climtab$tl)
+Tw <-  max(climtab$t)
+Twh <-  max(climtab$th)
+Tclx <- XtremLow(Tcl,Lat,Lon,Elev)
 
 #calculate radiation ----
 climtab$Ra <- GetSolarRad(climtab$Mon, Lat)
@@ -324,6 +392,79 @@ climtab$e.hm = 0.1651 * climtab$Dl * (216.7 * (6.108 * exp(17.26939*pmax(climtab
 
 #Remove excess columns
 climtab <- subset(climtab, select= -c(Vp, Vpmax, Vpmin, delta, lambda))
+climtab$e <- climtab[,paste0('e.', 'gs')]
+climtab$a <- pmin(climtab$e, climtab$p)
+
+
+pAET <- max(climtab$a)
+PET <- sum(climtab$e)
+MAP <- sum(climtab$p)
+AET <- sum(climtab$a)
+MAAT <- mean(climtab$t)
+Deficit <- max(PET - AET, 0)
+Surplus <- max(MAP - AET, 0)
+PPETRatio <- MAP/(PET +0.0001)
+Mindex <- PPETRatio/(PPETRatio+1)
+
+Seasonalilty <- ifelse(Deficit < 150 & PPETRatio>=1, "Isopluvial",
+                       ifelse(Surplus < 25 & PPETRatio < 0.5, ifelse(peakAET < 75, "Isoxeric","Pluvioxeric"),
+                              ifelse(peakAET < 75,"Xerothermic","Pluviothermic")))
 
 
 
+
+
+
+
+MRegime <- ifelse(PPETRatio>=2,"Perhumid",
+                  ifelse(PPETRatio>=1.414,"Moist-Humid",
+                         ifelse(PPETRatio>=1,"Dry-Humid",
+                                ifelse(PPETRatio>=0.707,"Moist-Subhumid",
+                                       ifelse(PPETRatio>=0.5,"Dry-Subhumid",
+                                              ifelse(PPETRatio>=0.25,"Semiarid",
+                                                     ifelse(PPETRatio>=0.125,"Arid","Perarid"
+                                                     )))))))
+
+
+BioTemperatureC <- 
+  ifelse(Tc >= 20 & Tclx >=5,"Meso-Tropical",
+         ifelse(Tc >= 15 & Tclx >=0,"Cryo-Tropical",
+                ifelse(Tc >= 10 & Tclx >=-5,"Thermo-Sutropical",
+                       ifelse(Tc >= 5 & Tclx >=-10,"Meso-Subtropical",
+                              ifelse(Tc >= 0 & Tclx >=-15,"Cryo-Subtropical",
+                                     ifelse(Tc >= -5 & Tclx >=-20,"Thermo-Temperate",
+                                            ifelse(Tc >= -10 & Tclx >=-25,"Meso-Temperate",
+                                                   ifelse(Tc >= -25 & Tclx >=-40,"Cryo-Temperate","Polar"
+                                                   ))))))))
+
+BioTemperatureW <- ifelse(Tg >= 24,"Hot (Lowland)",
+                          ifelse(Tg >= 18,"Warm (Premontane)",
+                                 ifelse(Tg >= 15,"Warm-Mild (Lower-Montane)",
+                                        ifelse(Tg >= 12,"Cool-Mild (Upper-Montane)",
+                                               ifelse(Tg >= 6,"Cool (Subalpine)","Cold (Alpine)"
+                                               )))))
+Climatetext<-paste(BioTemperatureW," ",BioTemperatureC,", ",MRegime," ",Seasonalilty, sep="" )
+
+climplot <- ggplot(climtab, aes(x=Mon)) + 
+  geom_bar(stat="identity",aes(fill="Precipitation", y=p/5), alpha = 0.85,  color="blue") +
+  geom_bar(stat="identity", aes(fill='PET', y=e/5), alpha = 0.60,  color="red" ) +
+  geom_line(stat="identity",  aes(color= "Temperature", y=t), alpha = 1) +
+  geom_point(aes(shape='Mean', y=t), color="red") +
+  geom_point(aes(shape='Low', y=tl), color="red") +
+  geom_point(aes(shape='High', y=th), color="red") +
+  #geom_errorbar(aes(ymin=p25/5, ymax=p75/5), width=.2,position=position_dodge(-0.9), color="blue") +
+  #geom_errorbar(aes(ymin=t25, ymax=t75), width=.2,position=position_dodge(0.9), color="red") +
+  
+  scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10,11,12), labels=c('01','02','03','04','05','06','07','08','09','10','11','12'))+
+  scale_y_continuous(name= "Temperature",
+                     breaks=c(-20,-15,-10,-5,0,5,10,15,20,25,30,35,40,45), labels=c('-20 (-4)', '-15 (  5)', '-10 (14)', '-5 (23)', '0 (32)', '5 (41)', '10 (50)', '15 (59)', '20 (68)', '25 (77)', '30 (86)', '35 (95)', '40 (104)', '°C (°F)'),
+                     sec.axis = sec_axis(trans = ~.*1,
+                                         name = "Precipitation",
+                                         breaks=c(0,5,10,15,20,25,30,35,40,45),
+                                         labels = c('0', '25   (1)', '50   (2)', '75   (3)', '100 (4)', '125 (5)', '150 (6)', '175 (7)', '200 (8)', 'mm (in)')))+
+    theme(legend.position="bottom") +
+  scale_fill_manual("Legend", values = c("Precipitation" = "cyan", "PET" = "yellow"))+
+  scale_color_manual("",values = c("Temperature" = "red", "Mean" = "red", "Low" = "red", "High"="red","Growth"="darkgreen"))+
+  scale_shape_manual("",values = c("Mean" = 19, "Low" = 6, "High"=2))+
+  coord_fixed(ratio = 1/9,xlim = c(1,12), ylim = c(-20, 43))+
+  labs(title = paste("Climate of ",station$Station_Name, ": ", sep=""))# ,  subtitle = my_text1)

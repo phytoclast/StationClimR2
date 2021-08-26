@@ -35,13 +35,17 @@ shinyServer(function(input, output, session) {
                 selected = 'NORTHERN AMERICA')
   })
   
-  output$elev = renderUI({
-    
-    sliderInput(inputId = 'elev',
-                label = 'Elevation',
-                min= -1000, max= 9000,
-                value= c(0), step = 50,
-                dragRange = TRUE)
+  output$setelev = renderUI({
+    selected <- input$stationselect
+    station <- subset(clim.tab.fill,
+                      clim.tab.fill$Station_Name %in% selected) [1,]
+    elevset <- ifelse(is.null(station$Elevation[1]), 237.1, ifelse(is.na(station$Elevation[1]), 237.1, station$Elevation[1]))
+
+    sliderInput(inputId = 'setelev',
+                 label = 'Elevation',
+                 min= -1000, max= 9000,
+                 value= elevset, step = 50,
+                 dragRange = TRUE)
     
   })
   output$lat = renderUI({
@@ -131,7 +135,7 @@ shinyServer(function(input, output, session) {
     f.p.ratioB = model.5B$coefficients[2]
 
     #Choose Elevation ----
-    Elev1 = 2000
+    Elev1 = input$setelev
 
     station$t.mean1 <- f.t.meanA * (pmin(midElev,Elev1) - pmin(midElev,station$Elev)) + f.t.meanB * (pmax(midElev,Elev1) - pmax(midElev,station$Elev)) + station$t.mean
     station$t.mean
@@ -204,7 +208,15 @@ shinyServer(function(input, output, session) {
     climtab$Vpmin = 0.6108*exp(17.27*climtab$tl/(climtab$tl+237.3)) #saturation vapor pressure kPa
     climtab$Vp = (climtab$Vpmax+climtab$Vpmin)/2
     climtab$RH = climtab$Vpmin/climtab$Vp*100
-
+    climtab$b <- ifelse(climtab$t >0, climtab$t,0)
+    Tg <- pmax(mean(climtab[c(5:10),]$b),mean(climtab[c(1:4,11:12),]$b))
+    Tc <- min(climtab$t)
+    Tcl <-  min(climtab$tl)
+    Tw <-  max(climtab$t)
+    Twh <-  max(climtab$th)
+    Tclx <- XtremLow(Tcl,Lat,Lon,Elev)
+    
+    
 
 
     #calculate radiation ----
@@ -245,11 +257,46 @@ shinyServer(function(input, output, session) {
 
     climtab$e.hm = 0.1651 * climtab$Dl * (216.7 * (6.108 * exp(17.26939*pmax(climtab$t,0) / (pmax(climtab$t,0) + 237.3))) / (pmax(climtab$t,0) + 273.3)) * 2.376169#Hamon (last factor is correlation coefficient 1.2)
 
-    #Remove excess columns
-    climtab <- subset(climtab, select= -c(Vp, Vpmax, Vpmin, delta, lambda))
-
- 
+    #Set PET method
+    climtab$e <- climtab[,paste0('e.', input$RadioPET)]
+    climtab$a <- pmin(climtab$e, climtab$p)
+  
+    pAET <- max(climtab$a)
+    PET <- sum(climtab$e)
+    MAP <- sum(climtab$p)
+    AET <- sum(climtab$a)
+    MAAT <- mean(climtab$t)
+    Deficit <- max(PET - AET, 0)
+    Surplus <- max(MAP - AET, 0)
+    PPETRatio <- MAP/(PET +0.0001)
+    Mindex <- PPETRatio/(PPETRatio+1)
     
+    
+    climplot <- ggplot(climtab, aes(x=Mon)) + 
+      geom_bar(stat="identity",aes(fill="Precipitation", y=p/5), alpha = 0.85,  color="blue") +
+      geom_bar(stat="identity", aes(fill='PET', y=e/5), alpha = 0.60,  color="red" ) +
+      geom_line(stat="identity",  aes(color= "Temperature", y=t), alpha = 1) +
+      geom_point(aes(shape='Mean', y=t), color="red") +
+      geom_point(aes(shape='Low', y=tl), color="red") +
+      geom_point(aes(shape='High', y=th), color="red") +
+      #geom_errorbar(aes(ymin=p25/5, ymax=p75/5), width=.2,position=position_dodge(-0.9), color="blue") +
+      #geom_errorbar(aes(ymin=t25, ymax=t75), width=.2,position=position_dodge(0.9), color="red") +
+      
+      scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10,11,12), labels=c('01','02','03','04','05','06','07','08','09','10','11','12'))+
+      scale_y_continuous(name= "Temperature",
+                         breaks=c(-20,-15,-10,-5,0,5,10,15,20,25,30,35,40,45), labels=c('-20 (-4)', '-15 (  5)', '-10 (14)', '-5 (23)', '0 (32)', '5 (41)', '10 (50)', '15 (59)', '20 (68)', '25 (77)', '30 (86)', '35 (95)', '40 (104)', '°C (°F)'),
+                         sec.axis = sec_axis(trans = ~.*1,
+                                             name = "Precipitation",
+                                             breaks=c(0,5,10,15,20,25,30,35,40,45),
+                                             labels = c('0', '25   (1)', '50   (2)', '75   (3)', '100 (4)', '125 (5)', '150 (6)', '175 (7)', '200 (8)', 'mm (in)')))+
+      theme(legend.position="bottom") +
+      scale_fill_manual("Legend", values = c("Precipitation" = "cyan", "PET" = "yellow"))+
+      scale_color_manual("",values = c("Temperature" = "red", "Mean" = "red", "Low" = "red", "High"="red","Growth"="darkgreen"))+
+      scale_shape_manual("",values = c("Mean" = 19, "Low" = 6, "High"=2))+
+      coord_fixed(ratio = 1/9,xlim = c(1,12), ylim = c(-20, 43))+
+      labs(title = paste("Climate of ",station$Station_Name, ": ", sep=""))# ,  subtitle = my_text1)
+    
+    climplot
     
   })
   })
