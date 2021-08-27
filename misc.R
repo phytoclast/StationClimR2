@@ -216,7 +216,7 @@ clim.tab <- subset(clim.tab.fill, !is.na(p.sum), select=c("Station_ID","Station_
 #### Server ---- 
 
 station <- subset(clim.tab.fill,
-                  clim.tab.fill$Station_Name %in% 'GRAND RAPIDS MI') [1,]
+                  clim.tab.fill$Station_Name %in% 'MT WASHINGTON NH') [1,]
 
 sLat =   station$Lat[1]  
 sLon =   station$Lon[1]  
@@ -228,7 +228,7 @@ clim.tab$altdifwt <- (clim.tab$Elev - sElev)^2/((clim.tab$Elev - sElev)^2 + 500^
 
 clim.tab$dist <- (((clim.tab$Lat - sLat)*10000/90)^2 + ((clim.tab$Lon - sLon)*cos(sLat*2*3.141592/360)*10000/90)^2)^0.5
 clim.tab$wt <- (localzone/(clim.tab$dist+localzone))^shape*100
-clim.tab$cutoff <- cutoff + cutoff*clim.tab$altdifwt/2
+clim.tab$cutoff <- cutoff + cutoff*clim.tab$altdifwt/1
 midElev <- (quantile(clim.tab[clim.tab$dist < clim.tab$cutoff, ]$Elev,.99, na.rm = T) + quantile(clim.tab[clim.tab$dist < clim.tab$cutoff, ]$Elev,.01, na.rm = T))/2
 
 clim.tab$wt <- ifelse(clim.tab$dist > clim.tab$cutoff, 0, clim.tab$wt)
@@ -239,12 +239,16 @@ model.1A <- lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = wt.low)
 model.1B <- lm(t.mean ~ Elev + Lat+ Lon, data = clim.tab, weights = wt.high)
 f.t.meanA = model.1A$coefficients[2]
 f.t.meanB = model.1B$coefficients[2]
-
-
+midElev
+summary(model.1A)
+summary(model.1B)
 model.2.1A <- lm(t.max ~ Elev + Lat+ Lon, data = clim.tab, weights = wt.low, na.action=na.exclude)
 f.t.maxA = model.2.1A$coefficients[2]
 model.2.1B <- lm(t.max ~ Elev + Lat+ Lon, data = clim.tab, weights = wt.high)
 f.t.maxB = model.2.1B$coefficients[2]
+
+summary(model.2.1A)
+summary(model.2.1B)
 
 model.2.2A <- lm(t.min ~ Elev + Lat+ Lon, data = clim.tab, weights = wt.low)
 f.t.minA = model.2.2A$coefficients[2]
