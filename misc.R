@@ -165,13 +165,20 @@ month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
 
 pre.tab <- readRDS('data/harmonized.RDS'); rownames(pre.tab) <- NULL
 listofstations <-readRDS('data/listofstations.RDS')
-
+if(is.null(listofstations$t01)){for (i in 1:12){
+  listofstations$x <- (listofstations[,paste0('th',month[i])] + listofstations[,paste0('tl',month[i])]) /2
+  colnames(listofstations)[colnames(listofstations) == 'x'] <- paste0("t", month[i])
+}}
 clim.tab.fill <- pre.tab
 
 if(is.null(clim.tab.fill$t01)){for (i in 1:12){
   clim.tab.fill$x <- (clim.tab.fill[,paste0('th',month[i])] + clim.tab.fill[,paste0('tl',month[i])]) /2
   colnames(clim.tab.fill)[colnames(clim.tab.fill) == 'x'] <- paste0("t", month[i])
 }}
+
+clim.tab.fill <- subset(clim.tab.fill, !(tl07 > th07|tl01 > th01|tl02 > th02|tl03 > th03|tl04 > th04|tl05 > th05|
+                     tl06 > th06|tl08 > th08|tl09 > th09|tl10 > th10|tl11 > th11|tl12 > th12))
+#summary stats for model building table
 colrange = grep("^t01$", colnames(clim.tab.fill)):grep("^t12$", colnames(clim.tab.fill))
 clim.tab.fill$t.mean <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='mean')
 clim.tab.fill$t.min <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='min')
@@ -188,18 +195,34 @@ colrange = grep("^p01$", colnames(clim.tab.fill)):grep("^p12$", colnames(clim.ta
 clim.tab.fill$p.max <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='max')
 clim.tab.fill$p.min <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='min')
 clim.tab.fill$p.ratio <- r.trans(clim.tab.fill$p.min/(clim.tab.fill$p.max+0.000001))
-
-s.pretab <- subset(pre.tab, NAME %in% 'NEKKEN FORESTRY')
-s.pretab <- subset(pre.tab, tl07 > th07|tl01 > th01)
+#summary stats for station table
+colrange = grep("^t01$", colnames(listofstations)):grep("^t12$", colnames(listofstations))
+listofstations$t.mean <- apply(listofstations[,colrange], MARGIN = 1, FUN='mean')
+listofstations$t.min <- apply(listofstations[,colrange], MARGIN = 1, FUN='min')
+listofstations$t.max <- apply(listofstations[,colrange], MARGIN = 1, FUN='max')
+colrange = grep("^th01$", colnames(listofstations)):grep("^th12$", colnames(listofstations))
+listofstations$th.mean <- apply(listofstations[,colrange], MARGIN = 1, FUN='mean')
+colrange = grep("^tl01$", colnames(listofstations)):grep("^tl12$", colnames(listofstations))
+listofstations$tl.mean <- apply(listofstations[,colrange], MARGIN = 1, FUN='mean')
+listofstations$tm.range <- t.trans(listofstations$t.max - listofstations$t.min)
+listofstations$td.range <- t.trans(listofstations$th.mean - listofstations$tl.mean)
+colrange = grep("^p01$", colnames(listofstations)):grep("^p12$", colnames(listofstations))
+listofstations$p.sum <- p.trans(apply(listofstations[,colrange], MARGIN = 1, FUN='sum'))
+colrange = grep("^p01$", colnames(listofstations)):grep("^p12$", colnames(listofstations))
+listofstations$p.max <- apply(listofstations[,colrange], MARGIN = 1, FUN='max')
+listofstations$p.min <- apply(listofstations[,colrange], MARGIN = 1, FUN='min')
+listofstations$p.ratio <- r.trans(listofstations$p.min/(listofstations$p.max+0.000001))
 
 #----
-
-clim.tab <- subset(clim.tab.fill, !is.na(p.sum), select=c("Station_ID","Station_Name","State","Lat","Lon","Elev",
-                                                          "t.mean","t.max", "t.min","tm.range","th.mean","td.range","p.sum","p.ratio"))
 #### Server ---- 
+clim.tab <- subset(clim.tab.fill, !is.na(p.sum) & Period %in% '1990', select=c("NAME","Lat","Lon","Elev",
+                                                                                   "t.mean","t.max", "t.min","tm.range","th.mean","td.range","p.sum","p.ratio"))
 
-station <- subset(clim.tab.fill,
-                  clim.tab.fill$Station_Name %in% 'MT WASHINGTON NH') [1,]
+
+station0 <- subset(listofstations,
+                  Station_Name %in% 'MT WASHINGTON NH') [1,]
+
+station <- subset(clim.tab, Lat==station0$Lat & Lon==station0$Lon & Elev==station0$Elevation)
 
 sLat =   station$Lat[1]  
 sLon =   station$Lon[1]  

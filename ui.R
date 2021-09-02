@@ -14,7 +14,8 @@ fluidPage(
     checkboxInput("saveselect", label = "Compare Station", value = FALSE),
     radioButtons("timeperiod", label = ("Time Period"),
                  choices = list('1961-1990 Normals' = '1990', 
-                                '+2C Projections' = '2080'), 
+                                '1981-2010 Normals' = '2010', 
+                 '+2C Projections' = '2080'), 
                  selected = '1990')
     
 
