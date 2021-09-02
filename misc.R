@@ -222,7 +222,7 @@ clim.tab <- subset(clim.tab.fill, !is.na(p.sum) & Period %in% '1990', select=c("
 station0 <- subset(listofstations,
                   Station_Name %in% 'MT WASHINGTON NH') [1,]
 
-station <- subset(clim.tab, Lat==station0$Lat & Lon==station0$Lon & Elev==station0$Elevation)
+station <- subset(clim.tab.fill, Lat==station0$Lat & Lon==station0$Lon & Elev==station0$Elevation & Period %in% '1990')
 
 sLat =   station$Lat[1]  
 sLon =   station$Lon[1]  
