@@ -328,7 +328,8 @@ for(i in 1:12){#i=1
   Lon=station$Lon
   sElev=sElev
   Elev1=Elev1
-  p <- (1-((1-station[,p.colrange[i]]/station$p.max)/(1-r.vert(station$p.ratio))*(1-r.vert(station$p.ratio1))))*station$p.max*pfactor[1]
+  p <- station[,p.colrange[i]]* p.vert(station$p.sum1)/p.vert(station$p.sum)
+  #p <- (1-((1-station[,p.colrange[i]]/station$p.max)/(1-r.vert(station$p.ratio))*(1-r.vert(station$p.ratio1))))*station$p.max*pfactor[1]
   t <- ifelse(station[,t.colrange[i]]> station$t.mean,
               (station[,t.colrange[i]]-station$t.mean)/station$t.rangeA*station$t.rangeA1+station$t.mean + (station$t.mean1 - station$t.mean),(station[,t.colrange[i]]-station$t.mean)/station$t.rangeB*station$t.rangeB1+station$t.mean + (station$t.mean1 - station$t.mean))[1]
   th <- t + (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*(station$td.rangeA1)/2
@@ -478,4 +479,5 @@ climplot <- ggplot(climtab, aes(x=Mon)) +
   scale_color_manual("",values = c("Temperature" = "red", "Mean" = "red", "Low" = "red", "High"="red","Growth"="darkgreen"))+
   scale_shape_manual("",values = c("Mean" = 19, "Low" = 6, "High"=2))+
   coord_fixed(ratio = 1/9,xlim = c(1,12), ylim = c(-20, 43))+
-  labs(title = paste("Climate of ",station$Station_Name, ": ", sep=""))# ,  subtitle = my_text1)
+  labs(title = paste("Climate of ",station0$Station_Name, " ", sep=""))# ,  subtitle = my_text1)
+climplot

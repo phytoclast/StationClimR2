@@ -5,9 +5,9 @@ account: usda
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 4539290
-bundleId: 4968905
+bundleId: 4995041
 url: https://usda.shinyapps.io/StationClimR2/
-when: 1630009873.27318
+when: 1630636008.99405
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: .gitattributes|misc.R
