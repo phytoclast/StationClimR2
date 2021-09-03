@@ -86,6 +86,9 @@ shinyServer(function(input, output, session) {
     clim.tab <- subset(clim.tab.fill, !is.na(p.sum) & Period %in% timeperiod, select=c("NAME","Lat","Lon","Elev",
                                                                                        "t.mean","t.max", "t.min","tm.range","th.mean","td.range","p.sum","p.ratio"))
     station <- subset(clim.tab.fill, Lat==station0$Lat & Lon==station0$Lon & Elev==station0$Elevation & Period %in% timeperiod)
+    station.Q <- subset(clim.tab.fill, Lat==station0$Lat & Lon==station0$Lon & Elev==station0$Elevation & Period %in% '2010')[1,]
+    station.Q2 <- subset(Q2, Latitude==station0$Lat & Longitude==station0$Lon & Elevation==station0$Elevation)[1,]
+    station.Q8 <- subset(Q8, Latitude==station0$Lat & Longitude==station0$Lon & Elevation==station0$Elevation)[1,]
     
     sLat =   station$Lat[1]
     sLon =   station$Lon[1]
@@ -135,10 +138,10 @@ shinyServer(function(input, output, session) {
     f.p.sumB = model.4B$coefficients[2]
 
 
-    model.5A <- lm(p.ratio ~ Elev + Lat+ Lon, data = clim.tab, weights = wt.low)
-    f.p.ratioA = model.5A$coefficients[2]
-    model.5B <- lm(p.ratio ~ Elev + Lat+ Lon, data = clim.tab, weights = wt.high)
-    f.p.ratioB = model.5B$coefficients[2]
+    # model.5A <- lm(p.ratio ~ Elev + Lat+ Lon, data = clim.tab, weights = wt.low)
+    # f.p.ratioA = model.5A$coefficients[2]
+    # model.5B <- lm(p.ratio ~ Elev + Lat+ Lon, data = clim.tab, weights = wt.high)
+    # f.p.ratioB = model.5B$coefficients[2]
 
     #Choose Elevation ----
     Elev1 = input$setelev
@@ -146,7 +149,7 @@ shinyServer(function(input, output, session) {
     station$t.mean1 <- f.t.meanA * (pmin(midElev,Elev1) - pmin(midElev,station$Elev)) + f.t.meanB * (pmax(midElev,Elev1) - pmax(midElev,station$Elev)) + station$t.mean
     station$t.mean
     station$t.mean1
-
+    
     station$t.max1 <- f.t.maxA * (pmin(midElev,Elev1) - pmin(midElev,station$Elev)) + f.t.maxB * (pmax(midElev,Elev1) - pmax(midElev,station$Elev)) + station$t.max
     station$t.max
     station$t.max1
@@ -158,29 +161,31 @@ shinyServer(function(input, output, session) {
     station$t.rangeA1 <- station$t.max1 - station$t.mean1
     station$t.rangeB1 <- station$t.mean1 - station$t.min1
     station$th.mean1 <- f.th.meanA * (pmin(midElev,Elev1) - pmin(midElev,station$Elev)) + f.th.meanB * (pmax(midElev,Elev1) - pmax(midElev,station$Elev)) + station$th.mean
-
+    
     station$td.rangeA1 <- (station$th.mean1 - station$t.mean1)*2
-
+    
     station$p.sum1 <- f.p.sumA * (pmin(midElev,Elev1) - pmin(midElev,station$Elev)) + f.p.sumB * (pmax(midElev,Elev1) - pmax(midElev,station$Elev)) + station$p.sum
     p.vert(station$p.sum)
     p.vert(station$p.sum1)
-    station$p.ratio1 <- f.p.ratioA * (pmin(midElev,Elev1) - pmin(midElev,station$Elev)) + f.p.ratioA * (pmax(midElev,Elev1) - pmax(midElev,station$Elev)) + station$p.ratio
-    r.vert(station$p.ratio)
-    r.vert(station$p.ratio1)
-
-
-
+    # station$p.ratio1 <- f.p.ratioA * (pmin(midElev,Elev1) - pmin(midElev,station$Elev)) + f.p.ratioA * (pmax(midElev,Elev1) - pmax(midElev,station$Elev)) + station$p.ratio
+    # r.vert(station$p.ratio)
+    # r.vert(station$p.ratio1)
+    
+    
+    
     t.colrange = grep("^t01$", colnames(station)):grep("^t12$", colnames(station))
     th.colrange = grep("^th01$", colnames(station)):grep("^th12$", colnames(station))
     tl.colrange = grep("^tl01$", colnames(station)):grep("^tl12$", colnames(station))
     p.colrange = grep("^p01$", colnames(station)):grep("^p12$", colnames(station))
-
-    pfactor <-   apply(1-((1-station[,p.colrange]/station$p.max)), MARGIN = 1, FUN='sum')/apply(1-((1-station[,colrange]/station$p.max)/(1-r.vert(station$p.ratio))*(1-r.vert(station$p.ratio1))), MARGIN = 1, FUN='sum')*p.vert(station$p.sum1)/ p.vert(station$p.sum)
-
-
+    tQ.colrange = grep("^t01$", colnames(station.Q2)):grep("^t12$", colnames(station.Q2))
+    pQ.colrange = grep("^p01$", colnames(station.Q2)):grep("^p12$", colnames(station.Q2))
+    
+    # pfactor <-   apply(1-((1-station[,p.colrange]/station$p.max)), MARGIN = 1, FUN='sum')/apply(1-((1-station[,colrange]/station$p.max)/(1-r.vert(station$p.ratio))*(1-r.vert(station$p.ratio1))), MARGIN = 1, FUN='sum')*p.vert(station$p.sum1)/ p.vert(station$p.sum)
+    
+    
     #New Table ----
     clim.tab2 <- NULL
-
+    
     for(i in 1:12){#i=1
       Mon = i
       Lat=station$Lat
@@ -188,27 +193,34 @@ shinyServer(function(input, output, session) {
       sElev=sElev
       Elev1=Elev1
       p <- station[,p.colrange[i]]* p.vert(station$p.sum1)/p.vert(station$p.sum)
+      pQ2 <- p*station.Q2[,pQ.colrange[i]]/(station.Q[,p.colrange[i]] + 1)
+      pQ8 <- p*station.Q8[,pQ.colrange[i]]/(station.Q[,p.colrange[i]] + 1)
       #p <- (1-((1-station[,p.colrange[i]]/station$p.max)/(1-r.vert(station$p.ratio))*(1-r.vert(station$p.ratio1))))*station$p.max*pfactor[1]
       t <- ifelse(station[,t.colrange[i]]> station$t.mean,
                   (station[,t.colrange[i]]-station$t.mean)/station$t.rangeA*station$t.rangeA1+station$t.mean + (station$t.mean1 - station$t.mean),(station[,t.colrange[i]]-station$t.mean)/station$t.rangeB*station$t.rangeB1+station$t.mean + (station$t.mean1 - station$t.mean))[1]
       th <- t + (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*(station$td.rangeA1)/2
       tl <- t - (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*(station$td.rangeA1)/2
+      tQ2 <- t+station.Q2[,tQ.colrange[i]]-(station.Q[,t.colrange[i]])
+      tQ8 <- t+station.Q8[,tQ.colrange[i]]-(station.Q[,t.colrange[i]])
+      
+      
       p.o <- station[,p.colrange[i]]
       t.o <- station[,t.colrange[i]]
       th.o <- station[,th.colrange[i]]
       tl.o <- station[,tl.colrange[i]]
-
-
-      clim.tab0 <- data.frame(cbind(Mon,Lat,Lon,sElev,Elev1,p.o,p,t.o,t,th.o,tl.o,th,tl))
+      
+      
+      clim.tab0 <- data.frame(cbind(Mon,Lat,Lon,sElev,Elev1,p.o,p,t.o,t,th.o,tl.o,th,tl,tQ2, tQ8, pQ2, pQ8))
       if(is.null(clim.tab2)){clim.tab2 <- clim.tab0}else{clim.tab2 <- rbind(clim.tab2,clim.tab0)}
     }
     rownames(clim.tab2)<- clim.tab2$Mon;clim.tab0<- NULL
-
+    
+    
 
     #PET ----
 
     Elev <- Elev1
-    climtab <- subset(clim.tab2, select=c(Mon,p,t,th,tl))
+    climtab <- subset(clim.tab2, select=c(Mon,p,t,th,tl,tQ2,tQ8,pQ2,pQ8))
     #Humidity ----
     climtab$t <- (climtab$th+climtab$tl)/2
     climtab$Vpmax = 0.6108*exp(17.27*climtab$th/(climtab$th+237.3)) #saturation vapor pressure kPa
@@ -342,9 +354,9 @@ shinyServer(function(input, output, session) {
       geom_point(aes(shape='Mean', y=t), color="red") +
       geom_point(aes(shape='Low', y=tl), color="red") +
       geom_point(aes(shape='High', y=th), color="red") +
-      #geom_errorbar(aes(ymin=p25/5, ymax=p75/5), width=.2,position=position_dodge(-0.9), color="blue") +
-      #geom_errorbar(aes(ymin=t25, ymax=t75), width=.2,position=position_dodge(0.9), color="red") +
-
+      geom_errorbar(aes(ymin=pQ2/5, ymax=pQ8/5), width=.2,position=position_dodge(-0.9), color="blue") +
+      geom_errorbar(aes(ymin=tQ2, ymax=tQ8), width=.2,position=position_dodge(0.9), color="red") +
+      
       scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10,11,12), labels=c('01','02','03','04','05','06','07','08','09','10','11','12'))+
       scale_y_continuous(name= "Temperature",
                          breaks=c(-20,-15,-10,-5,0,5,10,15,20,25,30,35,40,45), labels=c('-20 (-4)', '-15 (  5)', '-10 (14)', '-5 (23)', '0 (32)', '5 (41)', '10 (50)', '15 (59)', '20 (68)', '25 (77)', '30 (86)', '35 (95)', '40 (104)', '°C (°F)'),
@@ -357,8 +369,7 @@ shinyServer(function(input, output, session) {
       scale_color_manual("",values = c("Temperature" = "red", "Mean" = "red", "Low" = "red", "High"="red","Growth"="darkgreen"))+
       scale_shape_manual("",values = c("Mean" = 19, "Low" = 6, "High"=2))+
       coord_fixed(ratio = 1/9,xlim = c(1,12), ylim = c(-20, 43))+
-      labs(title = paste("Climate of ",station0$Station_Name, ": ", sep=""))# ,  subtitle = my_text1)
-
+      labs(title = paste0("Climate of ",station0$Station_Name, ": est. @ ",Elev, ' m (', periods[periods$speriod %in% timeperiod,]$period,')'))# ,  subtitle = my_text1)
     climplot
       # plot(t.mean~t.max, clim.tab, main=paste0('Lat:',station$NAME))
     

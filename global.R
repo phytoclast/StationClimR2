@@ -177,6 +177,10 @@ if(is.null(clim.tab.fill$t01)){for (i in 1:12){
 clim.tab.fill <- subset(clim.tab.fill, !(tl07 > th07|tl01 > th01|tl02 > th02|tl03 > th03|tl04 > th04|tl05 > th05|
                                            tl06 > th06|tl08 > th08|tl09 > th09|tl10 > th10|tl11 > th11|tl12 > th12))
 
+Q2 <- readRDS('data/Norms2010.Q2.RDS')
+Q8 <- readRDS('data/Norms2010.Q8.RDS')
+periods <- data.frame(cbind(period=c('1961-1990','1981-2010','+2C future'), speriod=c('1990','2010','2080')))
+
 #summary stats for model building table
 colrange = grep("^t01$", colnames(clim.tab.fill)):grep("^t12$", colnames(clim.tab.fill))
 clim.tab.fill$t.mean <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='mean')

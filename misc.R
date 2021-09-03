@@ -1,5 +1,7 @@
 library(sf)
+library(ggplot2)
 library(plyr)
+
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 #Global -----
 Norms2010 <- readRDS(file='data/Norms2010.RDS')
@@ -171,6 +173,11 @@ if(is.null(listofstations$t01)){for (i in 1:12){
 }}
 clim.tab.fill <- pre.tab
 
+Q2 <- readRDS('data/Norms2010.Q2.RDS')
+Q8 <- readRDS('data/Norms2010.Q8.RDS')
+periods <- data.frame(cbind(period=c('1961-1990','1981-2010','+2C future'), speriod=c('1990','2010','2080')))
+
+
 if(is.null(clim.tab.fill$t01)){for (i in 1:12){
   clim.tab.fill$x <- (clim.tab.fill[,paste0('th',month[i])] + clim.tab.fill[,paste0('tl',month[i])]) /2
   colnames(clim.tab.fill)[colnames(clim.tab.fill) == 'x'] <- paste0("t", month[i])
@@ -195,26 +202,10 @@ colrange = grep("^p01$", colnames(clim.tab.fill)):grep("^p12$", colnames(clim.ta
 clim.tab.fill$p.max <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='max')
 clim.tab.fill$p.min <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='min')
 clim.tab.fill$p.ratio <- r.trans(clim.tab.fill$p.min/(clim.tab.fill$p.max+0.000001))
-#summary stats for station table
-colrange = grep("^t01$", colnames(listofstations)):grep("^t12$", colnames(listofstations))
-listofstations$t.mean <- apply(listofstations[,colrange], MARGIN = 1, FUN='mean')
-listofstations$t.min <- apply(listofstations[,colrange], MARGIN = 1, FUN='min')
-listofstations$t.max <- apply(listofstations[,colrange], MARGIN = 1, FUN='max')
-colrange = grep("^th01$", colnames(listofstations)):grep("^th12$", colnames(listofstations))
-listofstations$th.mean <- apply(listofstations[,colrange], MARGIN = 1, FUN='mean')
-colrange = grep("^tl01$", colnames(listofstations)):grep("^tl12$", colnames(listofstations))
-listofstations$tl.mean <- apply(listofstations[,colrange], MARGIN = 1, FUN='mean')
-listofstations$tm.range <- t.trans(listofstations$t.max - listofstations$t.min)
-listofstations$td.range <- t.trans(listofstations$th.mean - listofstations$tl.mean)
-colrange = grep("^p01$", colnames(listofstations)):grep("^p12$", colnames(listofstations))
-listofstations$p.sum <- p.trans(apply(listofstations[,colrange], MARGIN = 1, FUN='sum'))
-colrange = grep("^p01$", colnames(listofstations)):grep("^p12$", colnames(listofstations))
-listofstations$p.max <- apply(listofstations[,colrange], MARGIN = 1, FUN='max')
-listofstations$p.min <- apply(listofstations[,colrange], MARGIN = 1, FUN='min')
-listofstations$p.ratio <- r.trans(listofstations$p.min/(listofstations$p.max+0.000001))
 
 #----
 #### Server ---- 
+timeperiod = '1990'
 clim.tab <- subset(clim.tab.fill, !is.na(p.sum) & Period %in% '1990', select=c("NAME","Lat","Lon","Elev",
                                                                                    "t.mean","t.max", "t.min","tm.range","th.mean","td.range","p.sum","p.ratio"))
 
@@ -222,7 +213,10 @@ clim.tab <- subset(clim.tab.fill, !is.na(p.sum) & Period %in% '1990', select=c("
 station0 <- subset(listofstations,
                   Station_Name %in% 'MT WASHINGTON NH') [1,]
 
-station <- subset(clim.tab.fill, Lat==station0$Lat & Lon==station0$Lon & Elev==station0$Elevation & Period %in% '1990')
+station <- subset(clim.tab.fill, Lat==station0$Lat & Lon==station0$Lon & Elev==station0$Elevation & Period %in% timeperiod)
+station.Q <- subset(clim.tab.fill, Lat==station0$Lat & Lon==station0$Lon & Elev==station0$Elevation & Period %in% '2010')[1,]
+station.Q2 <- subset(Q2, Latitude==station0$Lat & Longitude==station0$Lon & Elevation==station0$Elevation)[1,]
+station.Q8 <- subset(Q8, Latitude==station0$Lat & Longitude==station0$Lon & Elevation==station0$Elevation)[1,]
 
 sLat =   station$Lat[1]  
 sLon =   station$Lon[1]  
@@ -276,10 +270,10 @@ summary(model.4B)
 f.p.sumB = model.4B$coefficients[2]
 
 
-model.5A <- lm(p.ratio ~ Elev + Lat+ Lon, data = clim.tab, weights = wt.low)
-f.p.ratioA = model.5A$coefficients[2]
-model.5B <- lm(p.ratio ~ Elev + Lat+ Lon, data = clim.tab, weights = wt.high)
-f.p.ratioB = model.5B$coefficients[2]
+# model.5A <- lm(p.ratio ~ Elev + Lat+ Lon, data = clim.tab, weights = wt.low)
+# f.p.ratioA = model.5A$coefficients[2]
+# model.5B <- lm(p.ratio ~ Elev + Lat+ Lon, data = clim.tab, weights = wt.high)
+# f.p.ratioB = model.5B$coefficients[2]
 
 #Choose Elevation ----
 Elev1 = 2000
@@ -305,9 +299,9 @@ station$td.rangeA1 <- (station$th.mean1 - station$t.mean1)*2
 station$p.sum1 <- f.p.sumA * (pmin(midElev,Elev1) - pmin(midElev,station$Elev)) + f.p.sumB * (pmax(midElev,Elev1) - pmax(midElev,station$Elev)) + station$p.sum
 p.vert(station$p.sum)
 p.vert(station$p.sum1)
-station$p.ratio1 <- f.p.ratioA * (pmin(midElev,Elev1) - pmin(midElev,station$Elev)) + f.p.ratioA * (pmax(midElev,Elev1) - pmax(midElev,station$Elev)) + station$p.ratio
-r.vert(station$p.ratio)
-r.vert(station$p.ratio1)
+# station$p.ratio1 <- f.p.ratioA * (pmin(midElev,Elev1) - pmin(midElev,station$Elev)) + f.p.ratioA * (pmax(midElev,Elev1) - pmax(midElev,station$Elev)) + station$p.ratio
+# r.vert(station$p.ratio)
+# r.vert(station$p.ratio1)
 
 
 
@@ -315,8 +309,10 @@ t.colrange = grep("^t01$", colnames(station)):grep("^t12$", colnames(station))
 th.colrange = grep("^th01$", colnames(station)):grep("^th12$", colnames(station))
 tl.colrange = grep("^tl01$", colnames(station)):grep("^tl12$", colnames(station))
 p.colrange = grep("^p01$", colnames(station)):grep("^p12$", colnames(station))
+tQ.colrange = grep("^t01$", colnames(station.Q2)):grep("^t12$", colnames(station.Q2))
+pQ.colrange = grep("^p01$", colnames(station.Q2)):grep("^p12$", colnames(station.Q2))
 
-pfactor <-   apply(1-((1-station[,p.colrange]/station$p.max)), MARGIN = 1, FUN='sum')/apply(1-((1-station[,colrange]/station$p.max)/(1-r.vert(station$p.ratio))*(1-r.vert(station$p.ratio1))), MARGIN = 1, FUN='sum')*p.vert(station$p.sum1)/ p.vert(station$p.sum)
+# pfactor <-   apply(1-((1-station[,p.colrange]/station$p.max)), MARGIN = 1, FUN='sum')/apply(1-((1-station[,colrange]/station$p.max)/(1-r.vert(station$p.ratio))*(1-r.vert(station$p.ratio1))), MARGIN = 1, FUN='sum')*p.vert(station$p.sum1)/ p.vert(station$p.sum)
 
 
 #New Table ----
@@ -329,18 +325,24 @@ for(i in 1:12){#i=1
   sElev=sElev
   Elev1=Elev1
   p <- station[,p.colrange[i]]* p.vert(station$p.sum1)/p.vert(station$p.sum)
+  pQ2 <- p*station.Q2[,pQ.colrange[i]]/(station.Q[,p.colrange[i]] + 1)
+  pQ8 <- p*station.Q8[,pQ.colrange[i]]/(station.Q[,p.colrange[i]] + 1)
   #p <- (1-((1-station[,p.colrange[i]]/station$p.max)/(1-r.vert(station$p.ratio))*(1-r.vert(station$p.ratio1))))*station$p.max*pfactor[1]
   t <- ifelse(station[,t.colrange[i]]> station$t.mean,
               (station[,t.colrange[i]]-station$t.mean)/station$t.rangeA*station$t.rangeA1+station$t.mean + (station$t.mean1 - station$t.mean),(station[,t.colrange[i]]-station$t.mean)/station$t.rangeB*station$t.rangeB1+station$t.mean + (station$t.mean1 - station$t.mean))[1]
   th <- t + (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*(station$td.rangeA1)/2
   tl <- t - (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*(station$td.rangeA1)/2
+  tQ2 <- t+station.Q2[,tQ.colrange[i]]-(station.Q[,t.colrange[i]])
+  tQ8 <- t+station.Q8[,tQ.colrange[i]]-(station.Q[,t.colrange[i]])
+  
+  
   p.o <- station[,p.colrange[i]]
   t.o <- station[,t.colrange[i]]
   th.o <- station[,th.colrange[i]]
   tl.o <- station[,tl.colrange[i]]
   
   
-  clim.tab0 <- data.frame(cbind(Mon,Lat,Lon,sElev,Elev1,p.o,p,t.o,t,th.o,tl.o,th,tl))
+  clim.tab0 <- data.frame(cbind(Mon,Lat,Lon,sElev,Elev1,p.o,p,t.o,t,th.o,tl.o,th,tl,tQ2, tQ8, pQ2, pQ8))
   if(is.null(clim.tab2)){clim.tab2 <- clim.tab0}else{clim.tab2 <- rbind(clim.tab2,clim.tab0)}
 }
 rownames(clim.tab2)<- clim.tab2$Mon;clim.tab0<- NULL
@@ -349,7 +351,7 @@ rownames(clim.tab2)<- clim.tab2$Mon;clim.tab0<- NULL
 #PET ----
 
 Elev <- Elev1
-climtab <- subset(clim.tab2, select=c(Mon,p,t,th,tl))
+climtab <- subset(clim.tab2, select=c(Mon,p,t,th,tl,tQ2,tQ8,pQ2,pQ8))
 #Humidity ----
 climtab$t <- (climtab$th+climtab$tl)/2
 climtab$Vpmax = 0.6108*exp(17.27*climtab$th/(climtab$th+237.3)) #saturation vapor pressure kPa
@@ -464,8 +466,8 @@ climplot <- ggplot(climtab, aes(x=Mon)) +
   geom_point(aes(shape='Mean', y=t), color="red") +
   geom_point(aes(shape='Low', y=tl), color="red") +
   geom_point(aes(shape='High', y=th), color="red") +
-  #geom_errorbar(aes(ymin=p25/5, ymax=p75/5), width=.2,position=position_dodge(-0.9), color="blue") +
-  #geom_errorbar(aes(ymin=t25, ymax=t75), width=.2,position=position_dodge(0.9), color="red") +
+  geom_errorbar(aes(ymin=pQ2/5, ymax=pQ8/5), width=.2,position=position_dodge(-0.9), color="blue") +
+  geom_errorbar(aes(ymin=tQ2, ymax=tQ8), width=.2,position=position_dodge(0.9), color="red") +
   
   scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10,11,12), labels=c('01','02','03','04','05','06','07','08','09','10','11','12'))+
   scale_y_continuous(name= "Temperature",
@@ -479,5 +481,5 @@ climplot <- ggplot(climtab, aes(x=Mon)) +
   scale_color_manual("",values = c("Temperature" = "red", "Mean" = "red", "Low" = "red", "High"="red","Growth"="darkgreen"))+
   scale_shape_manual("",values = c("Mean" = 19, "Low" = 6, "High"=2))+
   coord_fixed(ratio = 1/9,xlim = c(1,12), ylim = c(-20, 43))+
-  labs(title = paste("Climate of ",station0$Station_Name, " ", sep=""))# ,  subtitle = my_text1)
+  labs(title = paste0("Climate of ",station0$Station_Name, ": est. @ ",Elev, ' m (', periods[periods$speriod %in% timeperiod,]$period,')'))# ,  subtitle = my_text1)
 climplot
