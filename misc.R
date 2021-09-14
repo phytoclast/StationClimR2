@@ -419,6 +419,30 @@ Deficit <- max(PET - AET, 0)
 Surplus <- max(MAP - AET, 0)
 PPETRatio <- MAP/(PET +0.0001)
 Mindex <- PPETRatio/(PPETRatio+1)
+SLabel <- paste0(station0$Station_Name, " @ ",Elev, ' m (', periods[periods$speriod %in% timeperiod,]$period,')')
+
+# Additional indices
+
+
+StationMeans <- as.data.frame(cbind(Lat, Lon, Elev, Tg, Tc, Tcl,Tw, Twh, Tclx, pAET, PET, MAP, AET, MAAT, Deficit, Surplus, PPETRatio, Mindex))
+StationMeans <- cbind(SLabel,StationMeans)
+StationMeans$SP1 <- round(ifelse(StationMeans$PPETRatio < 0.5 & StationMeans$Surplus < 25, pmax(StationMeans$Surplus/25)  ,1),15)
+StationMeans$SP2 <- round(ifelse(StationMeans$SP1 >= 1, ifelse(StationMeans$pAET < 75 & (StationMeans$Deficit >= 150 | StationMeans$PPETRatio < 1), pmax(StationMeans$pAET/75, 150/(StationMeans$Deficit+150)),1),0),15)
+StationMeans$SP3 <- round(ifelse(StationMeans$SP2 >= 1, ifelse(StationMeans$Deficit >= 150 | StationMeans$PPETRatio < 1, pmax(150/(StationMeans$Deficit+150)),1),0),15)
+StationMeans$SP4 <- round(ifelse(StationMeans$SP3 >= 1, pmin(1-StationMeans$Deficit/150),0),15)
+StationMeans$SPindex <- StationMeans$SP1 + StationMeans$SP2 + StationMeans$SP3 + StationMeans$SP4 + 1 #Seasonal precipitation index
+StationMeans$Cindex <- pmin(StationMeans$Tclx+15, StationMeans$Tc) #Cold index
+StationMeans$Dindex <- StationMeans$Deficit/(StationMeans$Deficit + 100)
+StationMeans$Sindex <- StationMeans$Surplus/(StationMeans$Surplus + 100)
+StationMeans$Aindex <- StationMeans$pAET/(StationMeans$pAET + 100)
+
+#Swap out the external data to a separate data frame and retain internal data for all but elevation graph.
+if(T)
+{savedselect <- StationMeans}#pass into storage.
+savedselect <- savedselect#retrieve from storage.
+currentMLR <- as.character(StationMeans$SLabel[1])#for labeling comparison graphs
+savedMLRA <- as.character(savedselect$SLabel[1])#for labeling comparison graphs
+
 
 Seasonalilty <- ifelse(Deficit < 150 & PPETRatio>=1, "Isopluvial",
                        ifelse(Surplus < 25 & PPETRatio < 0.5, ifelse(peakAET < 75, "Isoxeric","Pluvioxeric"),
@@ -482,4 +506,174 @@ climplot <- ggplot(climtab, aes(x=Mon)) +
   scale_shape_manual("",values = c("Mean" = 19, "Low" = 6, "High"=2))+
   coord_fixed(ratio = 1/9,xlim = c(1,12), ylim = c(-20, 43))+
   labs(title = paste0("Climate of ",station0$Station_Name, ": est. @ ",Elev, ' m (', periods[periods$speriod %in% timeperiod,]$period,')'))# ,  subtitle = my_text1)
-climplot
+
+
+a1=data.frame(x=c(-50,-50,0,0), y=c(0,6,6,0))
+a2=data.frame(x=c(-50,-50,0,0), y=c(6,12,12,6))
+a3=data.frame(x=c(-50,-50,0,0), y=c(12,36,36,12))
+a4=data.frame(x=c(0,0,6,0), y=c(0,6,6,0))
+a5=data.frame(x=c(0,0,18,6), y=c(6,18,18,6))
+a6=data.frame(x=c(0,0,15,15), y=c(18,36,36,18))
+a7=data.frame(x=c(15,15,36,18), y=c(18,36,36,18))
+
+ll1 <- data.frame(x=c(-50,6), y=c(6,6))
+ll2 <- data.frame(x=c(0,0), y=c(0,36))
+ll3 <- data.frame(x=c(15,15), y=c(18,36))
+l1 <- data.frame(x=c(-50,12), y=c(12,12))
+l2 <- data.frame(x=c(-25,0), y=c(15,15))
+l3 <- data.frame(x=c(-10,18), y=c(18,18))
+l4 <- data.frame(x=c(15,24), y=c(24,24))
+l5 <- data.frame(x=c(-10,-10), y=c(18,36))
+l6 <- data.frame(x=c(-25,-25), y=c(15,36))
+l7 <- data.frame(x=c(5,5), y=c(18,36))
+l8 <- data.frame(x=c(15,15), y=c(24,36))
+if(T) #Decide whether to plot comparison graph.
+{
+  climplot2 <-  ggplot() +
+    geom_polygon(data=a1, mapping=aes(x=x, y=y, fill='alpine'),alpha = 0.5)+
+    geom_polygon(data=a2, mapping=aes(x=x, y=y, fill='boreal'),alpha = 0.5)+
+    geom_polygon(data=a3, mapping=aes(x=x, y=y, fill='temperate'),alpha = 0.5)+
+    geom_polygon(data=a4, mapping=aes(x=x, y=y, fill='andean'),alpha = 0.5)+
+    geom_polygon(data=a5, mapping=aes(x=x, y=y, fill='oceanic'),alpha = 0.5)+
+    geom_polygon(data=a6, mapping=aes(x=x, y=y, fill='subtropical'),alpha = 0.5)+
+    geom_polygon(data=a7, mapping=aes(x=x, y=y, fill='tropical'),alpha = 0.5)+
+    
+    geom_line(data=ll1, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=ll2, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=ll3, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=l1, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=l2, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=l3, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=l4, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=l5, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=l6, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=l7, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=l8, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_point(data=StationMeans, mapping=aes(x=Cindex, y=Tg, color = "currentMLR"), size=0.5)+
+    #geom_density2d(data=climtab, mapping=aes(x=Cindex, y=Tg), color = 'black',alpha = 0.25)+
+    geom_point(data=savedselect, mapping=aes(x=Cindex, y=Tg, color = "savedMLRA"), size=0.5)+
+    #geom_density2d(data=savedselect, mapping=aes(x=Cindex, y=Tg),color = 'red',alpha = 0.25)+
+    scale_fill_manual("Thermozone", values = c("alpine" = "pink",
+                                               "boreal" = "darkgreen",
+                                               "temperate" = "greenyellow",
+                                               "andean" = "lightblue",
+                                               "oceanic" = "darkcyan",
+                                               "subtropical" = "orange",
+                                               "tropical" = "darkred"
+                                               
+    ))+
+    scale_color_manual(values=c("black", "red"),
+                       name="MLRA",
+                       breaks=c("currentMLR", "savedMLRA"),
+                       labels=c(currentMLR, savedMLRA))+
+    
+    scale_x_continuous(name= "Coldest Month (Annual Extreme Minimum)",
+                       breaks=c(-45,-40, -35, -30, -25, -20,-15, -10,-5, 0,5, 10,15, 20,25,30),
+                       labels=c('-45 (-60)','-40 (-55)', '-35 (-50)','-30 (-45)', '-25 (-40)','-20 (-35)','-15 (-30)','-10 (-25)',
+                                '-5 (-20)','0 (-15)','5 (-10)','10 (-5)','15 (0)','20 (5)','25 (10)','30 (15)'))+
+    scale_y_continuous(name= "Growing Season", breaks=c(0,6,12,18,24,30))+
+    coord_fixed(ratio = 1/1,xlim = c(-45,30), ylim = c(0, 33))+
+    labs(title = paste("Climate of ",StationMeans[1,]$LRU, ": ", sep=""))+
+    theme_bw()+
+    theme(legend.position='right',axis.text.x = element_text(angle = 90, vjust = 0, hjust = 0),
+          panel.grid.major = element_line(), panel.grid.minor = element_blank())
+}else{
+  climplot2 <-  ggplot() +
+    geom_polygon(data=a1, mapping=aes(x=x, y=y, fill='alpine'),alpha = 0.5)+
+    geom_polygon(data=a2, mapping=aes(x=x, y=y, fill='boreal'),alpha = 0.5)+
+    geom_polygon(data=a3, mapping=aes(x=x, y=y, fill='temperate'),alpha = 0.5)+
+    geom_polygon(data=a4, mapping=aes(x=x, y=y, fill='andean'),alpha = 0.5)+
+    geom_polygon(data=a5, mapping=aes(x=x, y=y, fill='oceanic'),alpha = 0.5)+
+    geom_polygon(data=a6, mapping=aes(x=x, y=y, fill='subtropical'),alpha = 0.5)+
+    geom_polygon(data=a7, mapping=aes(x=x, y=y, fill='tropical'),alpha = 0.5)+
+    
+    geom_line(data=ll1, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=ll2, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=ll3, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=l1, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=l2, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=l3, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=l4, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=l5, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=l6, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=l7, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_line(data=l8, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+    geom_point(data=StationMeans, mapping=aes(x=Cindex, y=Tg), color = 'black', size=0.5)+
+    #geom_density2d(data=StationMeans, mapping=aes(x=Cindex, y=Tg),color = 'black',alpha = 0.25)+
+    scale_fill_manual("Legend", values = c("alpine" = "pink",
+                                           "boreal" = "darkgreen",
+                                           "temperate" = "greenyellow",
+                                           "andean" = "lightblue",
+                                           "oceanic" = "darkcyan",
+                                           "subtropical" = "orange",
+                                           "tropical" = "darkred"
+                                           
+    ))+
+    
+    scale_x_continuous(name= "Coldest Month (Annual Extreme Minimum)",
+                       breaks=c(-45,-40, -35, -30, -25, -20,-15, -10,-5, 0,5, 10,15, 20,25,30),
+                       labels=c('-45 (-60)','-40 (-55)', '-35 (-50)','-30 (-45)', '-25 (-40)','-20 (-35)','-15 (-30)','-10 (-25)',
+                                '-5 (-20)','0 (-15)','5 (-10)','10 (-5)','15 (0)','20 (5)','25 (10)','30 (15)'))+
+    scale_y_continuous(name= "Growing Season", breaks=c(0,6,12,18,24,30))+
+    coord_fixed(ratio = 1/1,xlim = c(-45,30), ylim = c(0, 33))+
+    labs(title = paste("Climate of ",StationMeans[1,]$LRU, ": ", sep=""))+
+    theme_bw()+
+    theme(legend.position='right',axis.text.x = element_text(angle = 90, vjust = 0, hjust = 0),
+          panel.grid.major = element_line(), panel.grid.minor = element_blank())
+}
+
+bs1=data.frame(y=c(1,1,2,2), x=c(0,0.3333,0.3333,0))
+bs2=data.frame(y=c(2,2,3,3), x=c(0,1,1,0))
+bs3=data.frame(y=c(3,3,4,4), x=c(0,1,1,0))
+bs4=data.frame(y=c(4,4,5,5), x=c(0.5,1,1,0.5))
+
+bm1=data.frame(y=c(1,1,4,4), x=c(0,0.1111,0.1111,0))
+bm2=data.frame(y=c(1,1,4,4), x=c(0.1111,0.2,0.2,0.1111))
+bm3=data.frame(y=c(1,1,4,4), x=c(0.2,0.3333,0.333,0.2))
+bm4=data.frame(y=c(2,2,4,4), x=c(0.3333,0.5,0.5,0.3333))
+bm5=data.frame(y=c(2,2,5,5), x=c(0.5,0.6667,0.6667,0.5))
+bm6=data.frame(y=c(2,2,5,5), x=c(0.6667,1,1,0.6667))
+
+
+climplot3 <- ggplot() +
+  geom_polygon(data=bs1, mapping=aes(x=x, y=y, fill='isoxeric'),alpha = 0.2)+
+  geom_polygon(data=bs2, mapping=aes(x=x, y=y, fill='xerothermic'),alpha = 0.2)+
+  geom_polygon(data=bs3, mapping=aes(x=x, y=y, fill='pluviothermic'),alpha = 0.2)+
+  geom_polygon(data=bs4, mapping=aes(x=x, y=y, fill='isopluvial'),alpha = 0.2)+
+  geom_polygon(data=bm1, mapping=aes(x=x, y=y, fill='perarid'),alpha = 0.2)+
+  geom_polygon(data=bm2, mapping=aes(x=x, y=y, fill='arid'),alpha = 0.2)+
+  geom_polygon(data=bm3, mapping=aes(x=x, y=y, fill='semiarid'),alpha = 0.2)+
+  geom_polygon(data=bm4, mapping=aes(x=x, y=y, fill='subhumid'),alpha = 0.2)+
+  geom_polygon(data=bm5, mapping=aes(x=x, y=y, fill='humid'),alpha = 0.2)+
+  geom_polygon(data=bm6, mapping=aes(x=x, y=y, fill='perhumid'),alpha = 0.2)+
+  geom_point(data=StationMeans, mapping=aes(y=SPindex, x=Mindex, color = "currentMLR"), size=0.5)+
+  #geom_density2d(data=StationMeans, mapping=aes(y=SPindex, x=Mindex), color = 'black',alpha = 0.25)+
+  geom_point(data=savedselect, mapping=aes(y=SPindex, x=Mindex, color = "savedMLRA"), size=0.5)+
+  #geom_density2d(data=savedselect, mapping=aes(y=SPindex, x=Mindex),color = 'red',alpha = 0.25)+
+  scale_fill_manual("Legend", values = c("isoxeric" = "red",
+                                         "xerothermic" = "blue",
+                                         "pluviothermic" = "yellow",
+                                         "isopluvial" = "green",
+                                         "perarid" = "red",
+                                         "arid" = "orange",
+                                         "semiarid" = "yellow",
+                                         "subhumid" = "green",
+                                         "humid" = "cyan",
+                                         "perhumid" = "blue"
+  ),guide = 'none')+
+  scale_color_manual(values=c("black", "red"), 
+                     name="MLRA",
+                     breaks=c("currentMLR", "savedMLRA"),
+                     labels=c(currentMLR, savedMLRA))+
+  
+  scale_y_continuous(name= "Seasonality", breaks=c(1, 2,3,4),
+                     labels=c('Isoxeric', 'Xerothermic', 'Pluviothermic','Isopluvial'))+
+  scale_x_continuous(name= "P/PET Ratio", breaks=c(0, 0.1111, 0.2,0.3333,0.5,0.6667),
+                     labels=c('perarid', 'arid', 'semiarid','subhumid','humid','perhumid'))+
+  coord_fixed(ratio = 1/9, ylim = c(1,5), xlim = c(0, 1))+
+  labs(title = paste("Climate of ",StationMeans[1,]$SLabel, ": ", sep=""))+
+  theme_bw()+
+  theme(legend.position='right', axis.text.x = element_text(angle = 0, vjust = 0, hjust = -0.5), axis.text.y = element_text(vjust = -2), 
+        panel.grid.major = element_line(), panel.grid.minor = element_blank()) 
+
+climplot3
