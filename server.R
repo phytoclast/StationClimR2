@@ -290,30 +290,28 @@ shinyServer(function(input, output, session) {
     PPETRatio <- MAP/(PET +0.0001)
     Mindex <- PPETRatio/(PPETRatio+1)
     SLabel <- paste0(station0$Station_Name, " @ ",Elev, ' m (', periods[periods$speriod %in% timeperiod,]$period,')')
-    #Additional indices
-    # 
-    # 
-    # StationMeans <- as.data.frame(cbind(SLabel, Lat, Lon, Elev, Tg, Tc, Tcl,Tw, Twh, Tclx, pAET, PET, MAP, AET, MAAT, Deficit, Surplus, PPETRatio, Mindex))
-    # 
-    # StationMeans$SP1 <- round(ifelse(StationMeans$PPETRatio < 0.5 & StationMeans$Surplus < 25, pmax(StationMeans$Surplus/25)  ,1),15)
-    # StationMeans$SP2 <- round(ifelse(StationMeans$SP1 >= 1, ifelse(StationMeans$pAET < 75 & (StationMeans$Deficit >= 150 | StationMeans$PPETRatio < 1), pmax(StationMeans$pAET/75, 150/(StationMeans$Deficit+150)),1),0),15)
-    # StationMeans$SP3 <- round(ifelse(StationMeans$SP2 >= 1, ifelse(StationMeans$Deficit >= 150 | StationMeans$PPETRatio < 1, pmax(150/(StationMeans$Deficit+150)),1),0),15)
-    # StationMeans$SP4 <- round(ifelse(StationMeans$SP3 >= 1, pmin(1-StationMeans$Deficit/150),0),15)
-    # StationMeans$SPindex <- StationMeans$SP1 + StationMeans$SP2 + StationMeans$SP3 + StationMeans$SP4 + 1 #Seasonal precipitation index
-    # StationMeans$Cindex <- pmin(StationMeans$Tclx+15, StationMeans$Tc) #Cold index
-    # StationMeans$Dindex <- StationMeans$Deficit/(StationMeans$Deficit + 100)
-    # StationMeans$Sindex <- StationMeans$Surplus/(StationMeans$Surplus + 100)
-    # StationMeans$Aindex <- StationMeans$pAET/(StationMeans$pAET + 100)
-    # 
-    # #Swap out the external data to a separate data frame and retain internal data for all but elevation graph.
-    # StationMeans2<- StationMeans
-    # StationMeans <- StationMeans[StationMeans$wts >=1,]
-    # if(input$saveselect == FALSE)
-    # {rv$savedselect <- StationMeans}#pass into storage.
-    # savedselect <- rv$savedselect#retrieve from storage.
-    # currentMLR <- as.character(StationMeans$LRU[1])#for labeling comparison graphs
-    # savedMLRA <- as.character(savedselect$LRU[1])#for labeling comparison graphs
-    # 
+    # Additional indices
+
+
+    StationMeans <- as.data.frame(cbind(Lat, Lon, Elev, Tg, Tc, Tcl,Tw, Twh, Tclx, pAET, PET, MAP, AET, MAAT, Deficit, Surplus, PPETRatio, Mindex))
+    StationMeans <- cbind(SLabel,StationMeans)
+    StationMeans$SP1 <- round(ifelse(StationMeans$PPETRatio < 0.5 & StationMeans$Surplus < 25, pmax(StationMeans$Surplus/25)  ,1),15)
+    StationMeans$SP2 <- round(ifelse(StationMeans$SP1 >= 1, ifelse(StationMeans$pAET < 75 & (StationMeans$Deficit >= 150 | StationMeans$PPETRatio < 1), pmax(StationMeans$pAET/75, 150/(StationMeans$Deficit+150)),1),0),15)
+    StationMeans$SP3 <- round(ifelse(StationMeans$SP2 >= 1, ifelse(StationMeans$Deficit >= 150 | StationMeans$PPETRatio < 1, pmax(150/(StationMeans$Deficit+150)),1),0),15)
+    StationMeans$SP4 <- round(ifelse(StationMeans$SP3 >= 1, pmin(1-StationMeans$Deficit/150),0),15)
+    StationMeans$SPindex <- StationMeans$SP1 + StationMeans$SP2 + StationMeans$SP3 + StationMeans$SP4 + 1 #Seasonal precipitation index
+    StationMeans$Cindex <- pmin(StationMeans$Tclx+15, StationMeans$Tc) #Cold index
+    StationMeans$Dindex <- StationMeans$Deficit/(StationMeans$Deficit + 100)
+    StationMeans$Sindex <- StationMeans$Surplus/(StationMeans$Surplus + 100)
+    StationMeans$Aindex <- StationMeans$pAET/(StationMeans$pAET + 100)
+
+    #Swap out the external data to a separate data frame and retain internal data for graphs.
+    if(input$saveselect == FALSE)
+    {rv$savedselect <- StationMeans}#pass into storage.
+    savedselect <- rv$savedselect#retrieve from storage.
+    currentMLR <- as.character(StationMeans$SLabel[1])#for labeling comparison graphs
+    savedMLRA <- as.character(savedselect$SLabel[1])#for labeling comparison graphs
+
     
     
     #classify ----
@@ -399,132 +397,635 @@ shinyServer(function(input, output, session) {
       labs(title = paste0("Climate of ",station0$Station_Name, ": est. @ ",Elev, ' m (', periods[periods$speriod %in% timeperiod,]$period,')'))# ,  subtitle = my_text1)
     
 #climplot2 ----
-    # a1=data.frame(x=c(-50,-50,0,0), y=c(0,6,6,0))
-    # a2=data.frame(x=c(-50,-50,0,0), y=c(6,12,12,6))
-    # a3=data.frame(x=c(-50,-50,0,0), y=c(12,36,36,12))
-    # a4=data.frame(x=c(0,0,6,0), y=c(0,6,6,0))
-    # a5=data.frame(x=c(0,0,18,6), y=c(6,18,18,6))
-    # a6=data.frame(x=c(0,0,15,15), y=c(18,36,36,18))
-    # a7=data.frame(x=c(15,15,36,18), y=c(18,36,36,18))
-    # 
-    # ll1 <- data.frame(x=c(-50,6), y=c(6,6))
-    # ll2 <- data.frame(x=c(0,0), y=c(0,36))
-    # ll3 <- data.frame(x=c(15,15), y=c(18,36))
-    # l1 <- data.frame(x=c(-50,12), y=c(12,12))
-    # l2 <- data.frame(x=c(-25,0), y=c(15,15))
-    # l3 <- data.frame(x=c(-10,18), y=c(18,18))
-    # l4 <- data.frame(x=c(15,24), y=c(24,24))
-    # l5 <- data.frame(x=c(-10,-10), y=c(18,36))
-    # l6 <- data.frame(x=c(-25,-25), y=c(15,36))
-    # l7 <- data.frame(x=c(5,5), y=c(18,36))
-    # l8 <- data.frame(x=c(15,15), y=c(24,36))
-    # if(input$saveselect == TRUE) #Decide whether to plot comparison graph.
-    # { 
-    #   climplot2 <-  ggplot() +
-    #     geom_polygon(data=a1, mapping=aes(x=x, y=y, fill='alpine'),alpha = 0.5)+
-    #     geom_polygon(data=a2, mapping=aes(x=x, y=y, fill='boreal'),alpha = 0.5)+
-    #     geom_polygon(data=a3, mapping=aes(x=x, y=y, fill='temperate'),alpha = 0.5)+
-    #     geom_polygon(data=a4, mapping=aes(x=x, y=y, fill='andean'),alpha = 0.5)+
-    #     geom_polygon(data=a5, mapping=aes(x=x, y=y, fill='oceanic'),alpha = 0.5)+
-    #     geom_polygon(data=a6, mapping=aes(x=x, y=y, fill='subtropical'),alpha = 0.5)+
-    #     geom_polygon(data=a7, mapping=aes(x=x, y=y, fill='tropical'),alpha = 0.5)+
-    #     
-    #     geom_line(data=ll1, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=ll2, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=ll3, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=l1, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=l2, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=l3, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=l4, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=l5, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=l6, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=l7, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=l8, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_point(data=climtab, mapping=aes(x=Cindex, y=Tg, color = "currentMLR"), size=0.5)+
-    #     #geom_density2d(data=climtab, mapping=aes(x=Cindex, y=Tg), color = 'black',alpha = 0.25)+
-    #     geom_point(data=savedselect, mapping=aes(x=Cindex, y=Tg, color = "savedMLRA"), size=0.5)+
-    #     geom_density2d(data=savedselect, mapping=aes(x=Cindex, y=Tg),color = 'red',alpha = 0.25)+
-    #     scale_fill_manual("Thermozone", values = c("alpine" = "pink",
-    #                                                "boreal" = "darkgreen",
-    #                                                "temperate" = "greenyellow",
-    #                                                "andean" = "lightblue",
-    #                                                "oceanic" = "darkcyan",
-    #                                                "subtropical" = "orange",
-    #                                                "tropical" = "darkred"
-    #                                                
-    #     ))+
-    #     scale_color_manual(values=c("black", "red"), 
-    #                        name="MLRA",
-    #                        breaks=c("currentMLR", "savedMLRA"),
-    #                        labels=c(currentMLR, savedMLRA))+
-    #     
-    #     scale_x_continuous(name= "Coldest Month (Annual Extreme Minimum)", 
-    #                        breaks=c(-45,-40, -35, -30, -25, -20,-15, -10,-5, 0,5, 10,15, 20,25,30),
-    #                        labels=c('-45 (-60)','-40 (-55)', '-35 (-50)','-30 (-45)', '-25 (-40)','-20 (-35)','-15 (-30)','-10 (-25)',
-    #                                 '-5 (-20)','0 (-15)','5 (-10)','10 (-5)','15 (0)','20 (5)','25 (10)','30 (15)'))+
-    #     scale_y_continuous(name= "Growing Season", breaks=c(0,6,12,18,24,30))+
-    #     coord_fixed(ratio = 1/1,xlim = c(-45,30), ylim = c(0, 33))+
-    #     labs(title = paste("Climate of ",StationMeans[1,]$LRU, ": ", sep=""))+
-    #     theme_bw()+
-    #     theme(legend.position='right',axis.text.x = element_text(angle = 90, vjust = 0, hjust = 0),
-    #           panel.grid.major = element_line(), panel.grid.minor = element_blank())
-    # }
-    # else{
-    #   climplot2 <-  ggplot() +
-    #     geom_polygon(data=a1, mapping=aes(x=x, y=y, fill='alpine'),alpha = 0.5)+
-    #     geom_polygon(data=a2, mapping=aes(x=x, y=y, fill='boreal'),alpha = 0.5)+
-    #     geom_polygon(data=a3, mapping=aes(x=x, y=y, fill='temperate'),alpha = 0.5)+
-    #     geom_polygon(data=a4, mapping=aes(x=x, y=y, fill='andean'),alpha = 0.5)+
-    #     geom_polygon(data=a5, mapping=aes(x=x, y=y, fill='oceanic'),alpha = 0.5)+
-    #     geom_polygon(data=a6, mapping=aes(x=x, y=y, fill='subtropical'),alpha = 0.5)+
-    #     geom_polygon(data=a7, mapping=aes(x=x, y=y, fill='tropical'),alpha = 0.5)+
-    #     
-    #     geom_line(data=ll1, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=ll2, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=ll3, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=l1, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=l2, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=l3, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=l4, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=l5, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=l6, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=l7, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_line(data=l8, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-    #     geom_point(data=StationMeans, mapping=aes(x=Cindex, y=Tg), color = 'black', size=0.5)+
-    #     geom_density2d(data=StationMeans, mapping=aes(x=Cindex, y=Tg),color = 'black',alpha = 0.25)+
-    #     scale_fill_manual("Legend", values = c("alpine" = "pink",
-    #                                            "boreal" = "darkgreen",
-    #                                            "temperate" = "greenyellow",
-    #                                            "andean" = "lightblue",
-    #                                            "oceanic" = "darkcyan",
-    #                                            "subtropical" = "orange",
-    #                                            "tropical" = "darkred"
-    #                                            
-    #     ))+
-    #     
-    #     scale_x_continuous(name= "Coldest Month (Annual Extreme Minimum)", 
-    #                        breaks=c(-45,-40, -35, -30, -25, -20,-15, -10,-5, 0,5, 10,15, 20,25,30),
-    #                        labels=c('-45 (-60)','-40 (-55)', '-35 (-50)','-30 (-45)', '-25 (-40)','-20 (-35)','-15 (-30)','-10 (-25)',
-    #                                 '-5 (-20)','0 (-15)','5 (-10)','10 (-5)','15 (0)','20 (5)','25 (10)','30 (15)'))+
-    #     scale_y_continuous(name= "Growing Season", breaks=c(0,6,12,18,24,30))+
-    #     coord_fixed(ratio = 1/1,xlim = c(-45,30), ylim = c(0, 33))+
-    #     labs(title = paste("Climate of ",StationMeans[1,]$LRU, ": ", sep=""))+
-    #     theme_bw()+
-    #     theme(legend.position='right',axis.text.x = element_text(angle = 90, vjust = 0, hjust = 0),
-    #           panel.grid.major = element_line(), panel.grid.minor = element_blank())
-    # }
+    a1=data.frame(x=c(-50,-50,0,0), y=c(0,6,6,0))
+    a2=data.frame(x=c(-50,-50,0,0), y=c(6,12,12,6))
+    a3=data.frame(x=c(-50,-50,0,0), y=c(12,36,36,12))
+    a4=data.frame(x=c(0,0,6,0), y=c(0,6,6,0))
+    a5=data.frame(x=c(0,0,18,6), y=c(6,18,18,6))
+    a6=data.frame(x=c(0,0,15,15), y=c(18,36,36,18))
+    a7=data.frame(x=c(15,15,36,18), y=c(18,36,36,18))
+
+    ll1 <- data.frame(x=c(-50,6), y=c(6,6))
+    ll2 <- data.frame(x=c(0,0), y=c(0,36))
+    ll3 <- data.frame(x=c(15,15), y=c(18,36))
+    l1 <- data.frame(x=c(-50,12), y=c(12,12))
+    l2 <- data.frame(x=c(-25,0), y=c(15,15))
+    l3 <- data.frame(x=c(-10,18), y=c(18,18))
+    l4 <- data.frame(x=c(15,24), y=c(24,24))
+    l5 <- data.frame(x=c(-10,-10), y=c(18,36))
+    l6 <- data.frame(x=c(-25,-25), y=c(15,36))
+    l7 <- data.frame(x=c(5,5), y=c(18,36))
+    l8 <- data.frame(x=c(15,15), y=c(24,36))
+    if(input$saveselect == TRUE) #Decide whether to plot comparison graph.
+    {
+      climplot2 <-  ggplot() +
+        geom_polygon(data=a1, mapping=aes(x=x, y=y, fill='alpine'),alpha = 0.5)+
+        geom_polygon(data=a2, mapping=aes(x=x, y=y, fill='boreal'),alpha = 0.5)+
+        geom_polygon(data=a3, mapping=aes(x=x, y=y, fill='temperate'),alpha = 0.5)+
+        geom_polygon(data=a4, mapping=aes(x=x, y=y, fill='andean'),alpha = 0.5)+
+        geom_polygon(data=a5, mapping=aes(x=x, y=y, fill='oceanic'),alpha = 0.5)+
+        geom_polygon(data=a6, mapping=aes(x=x, y=y, fill='subtropical'),alpha = 0.5)+
+        geom_polygon(data=a7, mapping=aes(x=x, y=y, fill='tropical'),alpha = 0.5)+
+
+        geom_line(data=ll1, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=ll2, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=ll3, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=l1, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=l2, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=l3, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=l4, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=l5, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=l6, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=l7, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=l8, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_point(data=StationMeans, mapping=aes(x=Cindex, y=Tg, color = "currentMLR"), size=0.5)+
+        #geom_density2d(data=climtab, mapping=aes(x=Cindex, y=Tg), color = 'black',alpha = 0.25)+
+        geom_point(data=savedselect, mapping=aes(x=Cindex, y=Tg, color = "savedMLRA"), size=0.5)+
+        #geom_density2d(data=savedselect, mapping=aes(x=Cindex, y=Tg),color = 'red',alpha = 0.25)+
+        scale_fill_manual("Thermozone", values = c("alpine" = "pink",
+                                                   "boreal" = "darkgreen",
+                                                   "temperate" = "greenyellow",
+                                                   "andean" = "lightblue",
+                                                   "oceanic" = "darkcyan",
+                                                   "subtropical" = "orange",
+                                                   "tropical" = "darkred"
+
+        ))+
+        scale_color_manual(values=c("black", "red"),
+                           name="MLRA",
+                           breaks=c("currentMLR", "savedMLRA"),
+                           labels=c(currentMLR, savedMLRA))+
+
+        scale_x_continuous(name= "Coldest Month (Annual Extreme Minimum)",
+                           breaks=c(-45,-40, -35, -30, -25, -20,-15, -10,-5, 0,5, 10,15, 20,25,30),
+                           labels=c('-45 (-60)','-40 (-55)', '-35 (-50)','-30 (-45)', '-25 (-40)','-20 (-35)','-15 (-30)','-10 (-25)',
+                                    '-5 (-20)','0 (-15)','5 (-10)','10 (-5)','15 (0)','20 (5)','25 (10)','30 (15)'))+
+        scale_y_continuous(name= "Growing Season", breaks=c(0,6,12,18,24,30))+
+        coord_fixed(ratio = 1/1,xlim = c(-45,30), ylim = c(0, 33))+
+        labs(title = paste("Climate of ",StationMeans[1,]$SLabel, "", sep=""))+
+        theme_bw()+
+        theme(legend.position='right',axis.text.x = element_text(angle = 90, vjust = 0, hjust = 0),
+              panel.grid.major = element_line(), panel.grid.minor = element_blank())
+    }
+    else{
+      climplot2 <-  ggplot() +
+        geom_polygon(data=a1, mapping=aes(x=x, y=y, fill='alpine'),alpha = 0.5)+
+        geom_polygon(data=a2, mapping=aes(x=x, y=y, fill='boreal'),alpha = 0.5)+
+        geom_polygon(data=a3, mapping=aes(x=x, y=y, fill='temperate'),alpha = 0.5)+
+        geom_polygon(data=a4, mapping=aes(x=x, y=y, fill='andean'),alpha = 0.5)+
+        geom_polygon(data=a5, mapping=aes(x=x, y=y, fill='oceanic'),alpha = 0.5)+
+        geom_polygon(data=a6, mapping=aes(x=x, y=y, fill='subtropical'),alpha = 0.5)+
+        geom_polygon(data=a7, mapping=aes(x=x, y=y, fill='tropical'),alpha = 0.5)+
+
+        geom_line(data=ll1, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=ll2, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=ll3, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=l1, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=l2, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=l3, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=l4, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=l5, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=l6, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=l7, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_line(data=l8, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
+        geom_point(data=StationMeans, mapping=aes(x=Cindex, y=Tg), color = 'black', size=0.5)+
+        #geom_density2d(data=StationMeans, mapping=aes(x=Cindex, y=Tg),color = 'black',alpha = 0.25)+
+        scale_fill_manual("Legend", values = c("alpine" = "pink",
+                                               "boreal" = "darkgreen",
+                                               "temperate" = "greenyellow",
+                                               "andean" = "lightblue",
+                                               "oceanic" = "darkcyan",
+                                               "subtropical" = "orange",
+                                               "tropical" = "darkred"
+
+        ))+
+
+        scale_x_continuous(name= "Coldest Month (Annual Extreme Minimum)",
+                           breaks=c(-45,-40, -35, -30, -25, -20,-15, -10,-5, 0,5, 10,15, 20,25,30),
+                           labels=c('-45 (-60)','-40 (-55)', '-35 (-50)','-30 (-45)', '-25 (-40)','-20 (-35)','-15 (-30)','-10 (-25)',
+                                    '-5 (-20)','0 (-15)','5 (-10)','10 (-5)','15 (0)','20 (5)','25 (10)','30 (15)'))+
+        scale_y_continuous(name= "Growing Season", breaks=c(0,6,12,18,24,30))+
+        coord_fixed(ratio = 1/1,xlim = c(-45,30), ylim = c(0, 33))+
+        labs(title = paste("Climate of ",StationMeans[1,]$SLabel, "", sep=""))+
+        theme_bw()+
+        theme(legend.position='right',axis.text.x = element_text(angle = 90, vjust = 0, hjust = 0),
+              panel.grid.major = element_line(), panel.grid.minor = element_blank())
+    }
 #climplot3 ----
-
+    bs1=data.frame(y=c(1,1,2,2), x=c(0,0.3333,0.3333,0))
+    bs2=data.frame(y=c(2,2,3,3), x=c(0,1,1,0))
+    bs3=data.frame(y=c(3,3,4,4), x=c(0,1,1,0))
+    bs4=data.frame(y=c(4,4,5,5), x=c(0.5,1,1,0.5))
+    
+    bm1=data.frame(y=c(1,1,4,4), x=c(0,0.1111,0.1111,0))
+    bm2=data.frame(y=c(1,1,4,4), x=c(0.1111,0.2,0.2,0.1111))
+    bm3=data.frame(y=c(1,1,4,4), x=c(0.2,0.3333,0.333,0.2))
+    bm4=data.frame(y=c(2,2,4,4), x=c(0.3333,0.5,0.5,0.3333))
+    bm5=data.frame(y=c(2,2,5,5), x=c(0.5,0.6667,0.6667,0.5))
+    bm6=data.frame(y=c(2,2,5,5), x=c(0.6667,1,1,0.6667))
+    if(input$saveselect == TRUE) #Decide whether to plot comparison graph.
+    { climplot3 <- ggplot() +
+      geom_polygon(data=bs1, mapping=aes(x=x, y=y, fill='isoxeric'),alpha = 0.2)+
+      geom_polygon(data=bs2, mapping=aes(x=x, y=y, fill='xerothermic'),alpha = 0.2)+
+      geom_polygon(data=bs3, mapping=aes(x=x, y=y, fill='pluviothermic'),alpha = 0.2)+
+      geom_polygon(data=bs4, mapping=aes(x=x, y=y, fill='isopluvial'),alpha = 0.2)+
+      geom_polygon(data=bm1, mapping=aes(x=x, y=y, fill='perarid'),alpha = 0.2)+
+      geom_polygon(data=bm2, mapping=aes(x=x, y=y, fill='arid'),alpha = 0.2)+
+      geom_polygon(data=bm3, mapping=aes(x=x, y=y, fill='semiarid'),alpha = 0.2)+
+      geom_polygon(data=bm4, mapping=aes(x=x, y=y, fill='subhumid'),alpha = 0.2)+
+      geom_polygon(data=bm5, mapping=aes(x=x, y=y, fill='humid'),alpha = 0.2)+
+      geom_polygon(data=bm6, mapping=aes(x=x, y=y, fill='perhumid'),alpha = 0.2)+
+      geom_point(data=StationMeans, mapping=aes(y=SPindex, x=Mindex, color = "currentMLR"), size=0.5)+
+      #geom_density2d(data=StationMeans, mapping=aes(y=SPindex, x=Mindex), color = 'black',alpha = 0.25)+
+      geom_point(data=savedselect, mapping=aes(y=SPindex, x=Mindex, color = "savedMLRA"), size=0.5)+
+      #geom_density2d(data=savedselect, mapping=aes(y=SPindex, x=Mindex),color = 'red',alpha = 0.25)+
+      scale_fill_manual("Legend", values = c("isoxeric" = "red",
+                                             "xerothermic" = "blue",
+                                             "pluviothermic" = "yellow",
+                                             "isopluvial" = "green",
+                                             "perarid" = "red",
+                                             "arid" = "orange",
+                                             "semiarid" = "yellow",
+                                             "subhumid" = "green",
+                                             "humid" = "cyan",
+                                             "perhumid" = "blue"
+      ),guide = 'none')+
+      scale_color_manual(values=c("black", "red"), 
+                         name="MLRA",
+                         breaks=c("currentMLR", "savedMLRA"),
+                         labels=c(currentMLR, savedMLRA))+
+      
+      scale_y_continuous(name= "Seasonality", breaks=c(1, 2,3,4),
+                         labels=c('Isoxeric', 'Xerothermic', 'Pluviothermic','Isopluvial'))+
+      scale_x_continuous(name= "P/PET Ratio", breaks=c(0, 0.1111, 0.2,0.3333,0.5,0.6667),
+                         labels=c('perarid', 'arid', 'semiarid','subhumid','humid','perhumid'))+
+      coord_fixed(ratio = 1/9, ylim = c(1,5), xlim = c(0, 1))+
+      labs(title = paste("Climate of ",StationMeans[1,]$SLabel, "", sep=""))+
+      theme_bw()+
+      theme(legend.position='right', axis.text.x = element_text(angle = 0, vjust = 0, hjust = -0.5), axis.text.y = element_text(vjust = -2), 
+            panel.grid.major = element_line(), panel.grid.minor = element_blank()) 
+    
+    }else{climplot3 <- ggplot() +
+      geom_polygon(data=bs1, mapping=aes(x=x, y=y, fill='isoxeric'),alpha = 0.2)+
+      geom_polygon(data=bs2, mapping=aes(x=x, y=y, fill='xerothermic'),alpha = 0.2)+
+      geom_polygon(data=bs3, mapping=aes(x=x, y=y, fill='pluviothermic'),alpha = 0.2)+
+      geom_polygon(data=bs4, mapping=aes(x=x, y=y, fill='isopluvial'),alpha = 0.2)+
+      geom_polygon(data=bm1, mapping=aes(x=x, y=y, fill='perarid'),alpha = 0.2)+
+      geom_polygon(data=bm2, mapping=aes(x=x, y=y, fill='arid'),alpha = 0.2)+
+      geom_polygon(data=bm3, mapping=aes(x=x, y=y, fill='semiarid'),alpha = 0.2)+
+      geom_polygon(data=bm4, mapping=aes(x=x, y=y, fill='subhumid'),alpha = 0.2)+
+      geom_polygon(data=bm5, mapping=aes(x=x, y=y, fill='humid'),alpha = 0.2)+
+      geom_polygon(data=bm6, mapping=aes(x=x, y=y, fill='perhumid'),alpha = 0.2)+
+      geom_point(data=StationMeans, mapping=aes(y=SPindex, x=Mindex), color = 'black', size=0.5)+
+      #geom_density2d(data=StationMeans, mapping=aes(y=SPindex, x=Mindex),color = 'black',alpha = 0.25)+
+      scale_fill_manual("Legend", values = c("isoxeric" = "red",
+                                             "xerothermic" = "blue",
+                                             "pluviothermic" = "yellow",
+                                             "isopluvial" = "green",
+                                             "perarid" = "red",
+                                             "arid" = "orange",
+                                             "semiarid" = "yellow",
+                                             "subhumid" = "green",
+                                             "humid" = "cyan",
+                                             "perhumid" = "blue"
+      ))+
+      scale_y_continuous(name= "Seasonality", breaks=c(1, 2,3,4),
+                         labels=c('Isoxeric', 'Xerothermic', 'Pluviothermic','Isopluvial'))+
+      scale_x_continuous(name= "P/PET Ratio", breaks=c(0, 0.1111, 0.2,0.3333,0.5,0.6667),
+                         labels=c('perarid', 'arid', 'semiarid','subhumid','humid','perhumid'))+
+      coord_fixed(ratio = 1/9, ylim = c(1,5), xlim = c(0, 1))+
+      labs(title = paste("Climate of ",StationMeans[1,]$SLabel, "", sep=""))+
+      theme_bw()+
+      theme(legend.position='none', axis.text.x = element_text(angle = 0, vjust = 0, hjust = -0.5), axis.text.y = element_text(vjust = -2), 
+            panel.grid.major = element_line(), panel.grid.minor = element_blank()) 
+    }
 #climplot4 ----
-
+    #moisture x temperature
+    bw1=data.frame(y=c(0,0,6,6), x=c(0,1,1,0))
+    bw2=data.frame(y=c(6,6,12,12), x=c(0,1,1,0))
+    bw3=data.frame(y=c(12,12,18,18), x=c(0,1,1,0))
+    bw4=data.frame(y=c(18,18,24,24), x=c(0,1,1,0))
+    bw5=data.frame(y=c(24,24,30,30), x=c(0,1,1,0))
+    
+    bmm1=data.frame(y=c(0,0,30,30), x=c(0,0.1111,0.1111,0))
+    bmm2=data.frame(y=c(0,0,30,30), x=c(0.1111,0.2,0.2,0.1111))
+    bmm3=data.frame(y=c(0,0,30,30), x=c(0.2,0.3333,0.333,0.2))
+    bmm4=data.frame(y=c(0,0,30,30), x=c(0.3333,0.5,0.5,0.3333))
+    bmm5=data.frame(y=c(0,0,30,30), x=c(0.5,0.6667,0.6667,0.5))
+    bmm6=data.frame(y=c(0,0,30,30), x=c(0.6667,1,1,0.6667))
+    
+    if(input$saveselect == TRUE) #Decide whether to plot comparison graph.
+    {climplot4 <- ggplot() +
+      geom_polygon(data=bw1, mapping=aes(x=x, y=y, fill='alpine'),alpha = 0.2)+
+      geom_polygon(data=bw2, mapping=aes(x=x, y=y, fill='cool'),alpha = 0.2)+
+      geom_polygon(data=bw3, mapping=aes(x=x, y=y, fill='mild'),alpha = 0.2)+
+      geom_polygon(data=bw4, mapping=aes(x=x, y=y, fill='warm'),alpha = 0.2)+
+      geom_polygon(data=bw5, mapping=aes(x=x, y=y, fill='hot'),alpha = 0.2)+
+      geom_polygon(data=bmm1, mapping=aes(x=x, y=y, fill='perarid'),alpha = 0.1)+
+      geom_polygon(data=bmm2, mapping=aes(x=x, y=y, fill='arid'),alpha = 0.1)+
+      geom_polygon(data=bmm3, mapping=aes(x=x, y=y, fill='semiarid'),alpha = 0.1)+
+      geom_polygon(data=bmm4, mapping=aes(x=x, y=y, fill='subhumid'),alpha = 0.1)+
+      geom_polygon(data=bmm5, mapping=aes(x=x, y=y, fill='humid'),alpha = 0.1)+
+      geom_polygon(data=bmm6, mapping=aes(x=x, y=y, fill='perhumid'),alpha = 0.1)+
+      geom_point(data=StationMeans, mapping=aes(x=Mindex, y=Tg, color = "currentMLR"), size=0.5)+
+      #geom_density2d(data=StationMeans, mapping=aes(x=Mindex, y=Tg), color = 'black',alpha = 0.25)+
+      geom_point(data=savedselect, mapping=aes(x=Mindex, y=Tg, color = "savedMLRA"), size=0.5)+
+      #geom_density2d(data=savedselect, mapping=aes(x=Mindex, y=Tg),color = 'red',alpha = 0.25)+
+      scale_fill_manual("Legend", values = c("alpine" = "cyan",
+                                             "cool" = "green",
+                                             "mild" = "yellow",
+                                             "warm" = "orange",
+                                             "hot" = "red",
+                                             "perarid" = "red",
+                                             "arid" = "orange",
+                                             "semiarid" = "yellow",
+                                             "subhumid" = "green",
+                                             "humid" = "cyan",
+                                             "perhumid" = "blue"
+      ),guide = 'none')+
+      scale_color_manual(values=c("black", "red"), 
+                         name="MLRA",
+                         breaks=c("currentMLR", "savedMLRA"),
+                         labels=c(currentMLR, savedMLRA))+
+      scale_y_reverse(name= "Growing Season", breaks=c(6,12,18,24,30),
+                      labels=c('alpine/arctic 6', 'cool 12', 'mild 18','warm 24','hot 30'))+
+      scale_x_continuous(name= "P/PET Ratio", breaks=c(0, .1111, .2,0.3333,0.5,0.6667),
+                         labels=c('perarid', 'arid 0.125', 'semiarid 0.25','subhumid 0.5','humid 1','perhumid 2'))+
+      coord_fixed(ratio = 1/30,ylim = c(0,30), xlim = c(0, 1))+
+      
+      labs(title = paste("Climate of ",StationMeans[1,]$SLabel, "", sep=""))+
+      theme_bw()+
+      theme(legend.position='right', axis.text.x = element_text(angle = 90, vjust = 0, hjust = 1), 
+            axis.text.y = element_text(vjust = 0), 
+            panel.grid.major = element_line(), panel.grid.minor = element_blank()) }
+    else
+    {climplot4 <- ggplot() +
+      geom_polygon(data=bw1, mapping=aes(x=x, y=y, fill='alpine'),alpha = 0.2)+
+      geom_polygon(data=bw2, mapping=aes(x=x, y=y, fill='cool'),alpha = 0.2)+
+      geom_polygon(data=bw3, mapping=aes(x=x, y=y, fill='mild'),alpha = 0.2)+
+      geom_polygon(data=bw4, mapping=aes(x=x, y=y, fill='warm'),alpha = 0.2)+
+      geom_polygon(data=bw5, mapping=aes(x=x, y=y, fill='hot'),alpha = 0.2)+
+      geom_polygon(data=bmm1, mapping=aes(x=x, y=y, fill='perarid'),alpha = 0.1)+
+      geom_polygon(data=bmm2, mapping=aes(x=x, y=y, fill='arid'),alpha = 0.1)+
+      geom_polygon(data=bmm3, mapping=aes(x=x, y=y, fill='semiarid'),alpha = 0.1)+
+      geom_polygon(data=bmm4, mapping=aes(x=x, y=y, fill='subhumid'),alpha = 0.1)+
+      geom_polygon(data=bmm5, mapping=aes(x=x, y=y, fill='humid'),alpha = 0.1)+
+      geom_polygon(data=bmm6, mapping=aes(x=x, y=y, fill='perhumid'),alpha = 0.1)+
+      geom_point(data=StationMeans, mapping=aes(x=Mindex, y=Tg), color = 'black', size=0.5)+
+      #geom_density2d(data=StationMeans, mapping=aes(x=Mindex, y=Tg),color = 'black',alpha = 0.25)+
+      scale_fill_manual("Legend", values = c("alpine" = "cyan",
+                                             "cool" = "green",
+                                             "mild" = "yellow",
+                                             "warm" = "orange",
+                                             "hot" = "red",
+                                             "perarid" = "red",
+                                             "arid" = "orange",
+                                             "semiarid" = "yellow",
+                                             "subhumid" = "green",
+                                             "humid" = "cyan",
+                                             "perhumid" = "blue"
+      ))+
+      scale_y_reverse(name= "Growing Season", breaks=c(6,12,18,24,30),
+                      labels=c('alpine/arctic 6', 'cool 12', 'mild 18','warm 24','hot 30'))+
+      scale_x_continuous(name= "P/PET Ratio", breaks=c(0, .1111, .2,0.3333,0.5,0.6667),
+                         labels=c('perarid', 'arid 0.125', 'semiarid 0.25','subhumid 0.5','humid 1','perhumid 2'))+
+      coord_fixed(ratio = 1/30,ylim = c(0,30), xlim = c(0, 1))+
+      
+      labs(title = paste("Climate of ",StationMeans[1,]$SLabel, "", sep=""))+
+      theme_bw()+
+      theme(legend.position='none', axis.text.x = element_text(angle = 90, vjust = 0, hjust = 1), 
+            axis.text.y = element_text(vjust = 0), 
+            panel.grid.major = element_line(), panel.grid.minor = element_blank()) }
+    
 #climplot5 ----
-
+    #surplus x deficit
+    b1=data.frame(y=c(0,0,0.2,0.2), x=c(0,0.6,0.6,0))
+    b2=data.frame(y=c(0,0,0.2,0.2), x=c(0.6,1,1,0.6))
+    
+    humidline =data.frame(y=c(0,1), x=c(0,1))
+    b3=data.frame(y=c(0.2,0.2,1,1), x=c(0,0.6,0.6,0))
+    b4=data.frame(y=c(0.2,0.2,1,1), x=c(0.6,1,1,0.6))
+    if(input$saveselect == TRUE) #Decide whether to plot comparison graph.
+    {climplot5 <- ggplot() +
+      geom_polygon(data=b1, mapping=aes(x=x, y=y, fill='b'),alpha = 0.2)+
+      geom_polygon(data=b2, mapping=aes(x=x, y=y, fill='a'),alpha = 0.2)+
+      geom_polygon(data=b3, mapping=aes(x=x, y=y, fill='d'),alpha = 0.2)+
+      geom_polygon(data=b4, mapping=aes(x=x, y=y, fill='c'),alpha = 0.2)+
+      geom_line(data=humidline, mapping=aes(x=x, y=y, fill='c'),color = 'black',alpha = 0.2)+
+      geom_point(data=StationMeans, mapping=aes(x=Dindex, y=Sindex, color = "currentMLR"), size=0.5)+
+      #geom_density2d(data=StationMeans, mapping=aes(x=Dindex, y=Sindex), color = 'black',alpha = 0.25)+
+      geom_point(data=savedselect, mapping=aes(x=Dindex, y=Sindex, color = "savedMLRA"), size=0.5)+
+      #geom_density2d(data=savedselect, mapping=aes(x=Dindex, y=Sindex),color = 'red',alpha = 0.25)+
+      scale_fill_manual("Legend", values = c(
+        "a" = "red",
+        "b" = "yellow",
+        "c" = "green",
+        "d" = "blue"
+        
+      ),guide = 'none')+
+      scale_color_manual(values=c("black", "red"), 
+                         name="MLRA",
+                         breaks=c("currentMLR", "savedMLRA"),
+                         labels=c(currentMLR, savedMLRA))+
+      scale_y_continuous(name= "Surplus", breaks=c(0, 0.2, 0.3333,0.4286,0.5,0.6,0.75,0.8571),
+                         labels=c('0', '25', '50','75','100','150','300','600'))+
+      scale_x_continuous(name= "Deficit", breaks=c(0, 0.2, 0.3333,0.4286,0.5,0.6,0.75,0.8571),
+                         labels=c('0', '25', '50','75','100','150','300','600'))+
+      coord_fixed(ratio = 1/1, ylim = c(0, 1), xlim = c(0, 1))+
+      
+      labs(title = paste("Climate of ",StationMeans[1,]$SLabel, "", sep=""))+
+      theme_bw()+
+      theme(legend.position='right', axis.text.x = element_text(angle = 90, vjust = 0, hjust = 0), 
+            axis.text.y = element_text(vjust = 0),panel.grid.major = element_line(), panel.grid.minor = element_blank()) 
+    }else 
+    {climplot5 <- ggplot() +
+      geom_polygon(data=b1, mapping=aes(x=x, y=y, fill='b'),alpha = 0.2)+
+      geom_polygon(data=b2, mapping=aes(x=x, y=y, fill='a'),alpha = 0.2)+
+      geom_polygon(data=b3, mapping=aes(x=x, y=y, fill='d'),alpha = 0.2)+
+      geom_polygon(data=b4, mapping=aes(x=x, y=y, fill='c'),alpha = 0.2)+
+      geom_line(data=humidline, mapping=aes(x=x, y=y, fill='c'),color = 'black',alpha = 0.2)+
+      geom_point(data=StationMeans, mapping=aes(x=Dindex, y=Sindex), color = 'black', size=0.5)+
+      #geom_density2d(data=StationMeans, mapping=aes(x=Dindex, y=Sindex),color = 'black',alpha = 0.25)+
+      scale_fill_manual("Legend", values = c(
+        "a" = "red",
+        "b" = "yellow",
+        "c" = "green",
+        "d" = "blue"
+        
+      ))+
+      scale_y_continuous(name= "Surplus", breaks=c(0, 0.2, 0.3333,0.4286,0.5,0.6,0.75,0.8571),
+                         labels=c('0', '25', '50','75','100','150','300','600'))+
+      scale_x_continuous(name= "Deficit", breaks=c(0, 0.2, 0.3333,0.4286,0.5,0.6,0.75,0.8571),
+                         labels=c('0', '25', '50','75','100','150','300','600'))+
+      coord_fixed(ratio = 1/1, ylim = c(0, 1), xlim = c(0, 1))+
+      
+      labs(title = paste("Climate of ",StationMeans[1,]$SLabel, "", sep=""))+
+      theme_bw()+
+      theme(legend.position='none', axis.text.x = element_text(angle = 90, vjust = 0, hjust = 0), 
+            axis.text.y = element_text(vjust = 0),panel.grid.major = element_line(), panel.grid.minor = element_blank()) 
+    }
 #climplot6 ----
-
+    #growingseason x pAET
+    bw1=data.frame(y=c(0,0,6,6), x=c(0,1,1,0))
+    bw2=data.frame(y=c(6,6,12,12), x=c(0,1,1,0))
+    bw3=data.frame(y=c(12,12,18,18), x=c(0,1,1,0))
+    bw4=data.frame(y=c(18,18,24,24), x=c(0,1,1,0))
+    bw5=data.frame(y=c(24,24,30,30), x=c(0,1,1,0))
+    
+    bmm1=data.frame(y=c(0,0,30,30), x=c(0,0.2,0.2,0))
+    bmm2=data.frame(y=c(0,0,30,30), x=c(0.2,0.3333,0.3333,0.2))
+    bmm3=data.frame(y=c(0,0,30,30), x=c(0.3333,0.4286,0.4286,0.333))
+    bmm4=data.frame(y=c(0,0,30,30), x=c(0.4286,0.5,0.5,0.4286))
+    bmm5=data.frame(y=c(0,0,30,30), x=c(0.5,0.6,0.6,0.5))
+    bmm6=data.frame(y=c(0,0,30,30), x=c(0.6,0.75,0.75,0.6))
+    if(input$saveselect == TRUE) #Decide whether to plot comparison graph.
+    { climplot6 <- ggplot() +
+      geom_polygon(data=bw1, mapping=aes(x=x, y=y, fill='alpine'),alpha = 0.2)+
+      geom_polygon(data=bw2, mapping=aes(x=x, y=y, fill='cool'),alpha = 0.2)+
+      geom_polygon(data=bw3, mapping=aes(x=x, y=y, fill='mild'),alpha = 0.2)+
+      geom_polygon(data=bw4, mapping=aes(x=x, y=y, fill='warm'),alpha = 0.2)+
+      geom_polygon(data=bw5, mapping=aes(x=x, y=y, fill='hot'),alpha = 0.2)+
+      geom_polygon(data=bmm1, mapping=aes(x=x, y=y, fill='a'),alpha = 0.1)+
+      geom_polygon(data=bmm2, mapping=aes(x=x, y=y, fill='a'),alpha = 0.1)+
+      geom_polygon(data=bmm3, mapping=aes(x=x, y=y, fill='a'),alpha = 0.1)+
+      geom_polygon(data=bmm4, mapping=aes(x=x, y=y, fill='b'),alpha = 0.1)+
+      geom_polygon(data=bmm5, mapping=aes(x=x, y=y, fill='b'),alpha = 0.1)+
+      geom_polygon(data=bmm6, mapping=aes(x=x, y=y, fill='b'),alpha = 0.1)+
+      geom_point(data=StationMeans, mapping=aes(x=Aindex, y=Tg, color = "currentMLR"), size=0.5)+
+      #geom_density2d(data=StationMeans, mapping=aes(x=Aindex, y=Tg), color = 'black',alpha = 0.25)+
+      geom_point(data=savedselect, mapping=aes(x=Aindex, y=Tg, color = "savedMLRA"), size=0.5)+
+      #geom_density2d(data=savedselect, mapping=aes(x=Aindex, y=Tg),color = 'red',alpha = 0.25)+
+      scale_fill_manual("Legend", values = c("alpine" = "cyan",
+                                             "cool" = "green",
+                                             "mild" = "yellow",
+                                             "warm" = "orange",
+                                             "hot" = "red",
+                                             "a" = "blue",
+                                             "b" = "yellow"
+      ),guide = 'none')+
+      scale_color_manual(values=c("black", "red"), 
+                         name="MLRA",
+                         breaks=c("currentMLR", "savedMLRA"),
+                         labels=c(currentMLR, savedMLRA))+
+      scale_y_reverse(name= "Growing Season", breaks=c(6,12,18,24,30),
+                      labels=c('alpine/arctic 6', 'cool 12', 'mild 18','warm 24','hot 30'))+
+      scale_x_continuous(name= "Peak Monthly Actual Evapotranspiration", breaks=c(0, 0.2, 0.3333,0.4286,0.5,0.6,0.75),
+                         labels=c('0', '25', '50','75','100','150','300'))+
+      coord_fixed(ratio = 1/30,ylim = c(0,30), xlim = c(0, 1))+
+      
+      labs(title = paste("Climate of ",StationMeans[1,]$SLabel, "", sep=""))+
+      theme_bw()+
+      theme(legend.position='right', axis.text.x = element_text(angle = 90, vjust = 0, hjust = 0), 
+            axis.text.y = element_text(vjust = 0),panel.grid.major = element_line(), panel.grid.minor = element_blank()) 
+    }else
+    { climplot6 <- ggplot() +
+      geom_polygon(data=bw1, mapping=aes(x=x, y=y, fill='alpine'),alpha = 0.2)+
+      geom_polygon(data=bw2, mapping=aes(x=x, y=y, fill='cool'),alpha = 0.2)+
+      geom_polygon(data=bw3, mapping=aes(x=x, y=y, fill='mild'),alpha = 0.2)+
+      geom_polygon(data=bw4, mapping=aes(x=x, y=y, fill='warm'),alpha = 0.2)+
+      geom_polygon(data=bw5, mapping=aes(x=x, y=y, fill='hot'),alpha = 0.2)+
+      geom_polygon(data=bmm1, mapping=aes(x=x, y=y, fill='a'),alpha = 0.1)+
+      geom_polygon(data=bmm2, mapping=aes(x=x, y=y, fill='a'),alpha = 0.1)+
+      geom_polygon(data=bmm3, mapping=aes(x=x, y=y, fill='a'),alpha = 0.1)+
+      geom_polygon(data=bmm4, mapping=aes(x=x, y=y, fill='b'),alpha = 0.1)+
+      geom_polygon(data=bmm5, mapping=aes(x=x, y=y, fill='b'),alpha = 0.1)+
+      geom_polygon(data=bmm6, mapping=aes(x=x, y=y, fill='b'),alpha = 0.1)+
+      geom_point(data=StationMeans, mapping=aes(x=Aindex, y=Tg), color = 'black', size=0.5)+
+      #geom_density2d(data=StationMeans, mapping=aes(x=Aindex, y=Tg),color = 'black',alpha = 0.25)+
+      scale_fill_manual("Legend", values = c("alpine" = "cyan",
+                                             "cool" = "green",
+                                             "mild" = "yellow",
+                                             "warm" = "orange",
+                                             "hot" = "red",
+                                             "a" = "blue",
+                                             "b" = "yellow"
+      ))+
+      scale_y_reverse(name= "Growing Season", breaks=c(6,12,18,24,30),
+                      labels=c('alpine/arctic 6', 'cool 12', 'mild 18','warm 24','hot 30'))+
+      scale_x_continuous(name= "Peak Monthly Actual Evapotranspiration", breaks=c(0, 0.2, 0.3333,0.4286,0.5,0.6,0.75),
+                         labels=c('0', '25', '50','75','100','150','300'))+
+      coord_fixed(ratio = 1/30,ylim = c(0,30), xlim = c(0, 1))+
+      
+      labs(title = paste("Climate of ",StationMeans[1,]$SLabel, "", sep=""))+
+      theme_bw()+
+      theme(legend.position='none', axis.text.x = element_text(angle = 90, vjust = 0, hjust = 0), 
+            axis.text.y = element_text(vjust = 0),panel.grid.major = element_line(), panel.grid.minor = element_blank()) 
+    }
+    
 #climplot7 ----
-
+    #winter x pAET
+    bw1=data.frame(x=c(-100,-100,-25,-25), y=c(0,1,1,0))
+    bw2=data.frame(x=c(-25,-25,0,0), y=c(0,1,1,0))
+    bw3=data.frame(x=c(0,0,15,15), y=c(0,1,1,0))
+    bw4=data.frame(x=c(15,15,100,100), y=c(0,1,1,0))
+    
+    bmm1=data.frame(x=c(-100,-100,100,100), y=c(0,0.2,0.2,0))
+    bmm2=data.frame(x=c(-100,-100,100,100), y=c(0.2,0.3333,0.3333,0.2))
+    bmm3=data.frame(x=c(-100,-100,100,100), y=c(0.3333,0.4286,0.4286,0.333))
+    bmm4=data.frame(x=c(-100,-100,100,100), y=c(0.4286,0.5,0.5,0.4286))
+    bmm5=data.frame(x=c(-100,-100,100,100), y=c(0.5,0.6,0.6,0.5))
+    bmm6=data.frame(x=c(-100,-100,100,100), y=c(0.6,1,1,0.6))
+    if(input$saveselect == TRUE) #Decide whether to plot comparison graph.
+    { climplot7 <- ggplot() +
+      geom_polygon(data=bw1, mapping=aes(x=x, y=y, fill='polar'),alpha = 0.2)+
+      geom_polygon(data=bw2, mapping=aes(x=x, y=y, fill='temperate'),alpha = 0.2)+
+      geom_polygon(data=bw3, mapping=aes(x=x, y=y, fill='subtropical'),alpha = 0.2)+
+      geom_polygon(data=bw4, mapping=aes(x=x, y=y, fill='tropical'),alpha = 0.2)+
+      
+      geom_polygon(data=bmm1, mapping=aes(x=x, y=y, fill='a'),alpha = 0.1)+
+      geom_polygon(data=bmm2, mapping=aes(x=x, y=y, fill='a'),alpha = 0.1)+
+      geom_polygon(data=bmm3, mapping=aes(x=x, y=y, fill='a'),alpha = 0.1)+
+      geom_polygon(data=bmm4, mapping=aes(x=x, y=y, fill='b'),alpha = 0.1)+
+      geom_polygon(data=bmm5, mapping=aes(x=x, y=y, fill='b'),alpha = 0.1)+
+      geom_polygon(data=bmm6, mapping=aes(x=x, y=y, fill='b'),alpha = 0.1)+
+      geom_point(data=StationMeans, mapping=aes(x=Cindex, y=Aindex, color = "currentMLR"), size=0.5)+
+      #geom_density2d(data=StationMeans, mapping=aes(x=Cindex, y=Aindex), color = 'black',alpha = 0.25)+
+      geom_point(data=savedselect, mapping=aes(x=Cindex, y=Aindex, color = "savedMLRA"), size=0.5)+
+      #geom_density2d(data=savedselect, mapping=aes(x=Cindex, y=Aindex),color = 'red',alpha = 0.25)+
+      
+      scale_fill_manual("Legend", values = c("polar" = "orange",
+                                             "temperate" = "yellow",
+                                             "mild" = "yellowgreen",
+                                             "tropical" = "darkgreen",
+                                             
+                                             "a" = "blue",
+                                             "b" = "yellow"
+      ),guide = 'none')+
+      scale_color_manual(values=c("black", "red"), 
+                         name="MLRA",
+                         breaks=c("currentMLR", "savedMLRA"),
+                         labels=c(currentMLR, savedMLRA))+
+      
+      scale_x_continuous(name= "Coldest Month (Annual Extreme Minimum)", breaks=c(-40, -35, -30, -25, -20,-15, -10,-5, 0,5, 10,15, 20,25,30),
+                         labels=c('-40 (-55)', '-35 (-50)','-30 (-45)', '-25 (-40)','-20 (-35)','-15 (-30)','-10 (-25)',
+                                  '-5 (-20)','0 (-15)','5 (-10)','10 (-5)','15 (0)','20 (5)','25 (10)','30 (15)'))+
+      scale_y_continuous(name= "Peak Monthly Actual Evapotranspiration", breaks=c(0, 0.2, 0.3333,0.4286,0.5,0.6,0.75),
+                         labels=c('0', '25', '50','75','100','150','300'))+
+      coord_fixed(ratio = 30/1,xlim = c(-40,30), ylim = c(0,1))+
+      
+      labs(title = paste("Climate of ",StationMeans[1,]$SLabel, "", sep=""))+
+      theme_bw()+
+      theme(legend.position='right', axis.text.x = element_text(angle = 90, vjust = 0, hjust = 0), 
+            axis.text.y = element_text(vjust = 0),panel.grid.major = element_line(), panel.grid.minor = element_blank()) 
+    } else
+    { climplot7 <- ggplot() +
+      geom_polygon(data=bw1, mapping=aes(x=x, y=y, fill='polar'),alpha = 0.2)+
+      geom_polygon(data=bw2, mapping=aes(x=x, y=y, fill='temperate'),alpha = 0.2)+
+      geom_polygon(data=bw3, mapping=aes(x=x, y=y, fill='subtropical'),alpha = 0.2)+
+      geom_polygon(data=bw4, mapping=aes(x=x, y=y, fill='tropical'),alpha = 0.2)+
+      
+      geom_polygon(data=bmm1, mapping=aes(x=x, y=y, fill='a'),alpha = 0.1)+
+      geom_polygon(data=bmm2, mapping=aes(x=x, y=y, fill='a'),alpha = 0.1)+
+      geom_polygon(data=bmm3, mapping=aes(x=x, y=y, fill='a'),alpha = 0.1)+
+      geom_polygon(data=bmm4, mapping=aes(x=x, y=y, fill='b'),alpha = 0.1)+
+      geom_polygon(data=bmm5, mapping=aes(x=x, y=y, fill='b'),alpha = 0.1)+
+      geom_polygon(data=bmm6, mapping=aes(x=x, y=y, fill='b'),alpha = 0.1)+
+      geom_point(data=StationMeans, mapping=aes(x=Cindex, y=Aindex), color = 'black', size=0.5)+
+      #geom_density2d(data=StationMeans, mapping=aes(x=Cindex, y=Aindex),color = 'black',alpha = 0.25)+
+      scale_fill_manual("Legend", values = c("polar" = "orange",
+                                             "temperate" = "yellow",
+                                             "mild" = "yellowgreen",
+                                             "tropical" = "darkgreen",
+                                             
+                                             "a" = "blue",
+                                             "b" = "yellow"
+      ))+
+      scale_x_continuous(name= "Coldest Month (Annual Extreme Minimum)", breaks=c(-40, -35, -30, -25, -20,-15, -10,-5, 0,5, 10,15, 20,25,30),
+                         labels=c('-40 (-55)', '-35 (-50)','-30 (-45)', '-25 (-40)','-20 (-35)','-15 (-30)','-10 (-25)',
+                                  '-5 (-20)','0 (-15)','5 (-10)','10 (-5)','15 (0)','20 (5)','25 (10)','30 (15)'))+
+      scale_y_continuous(name= "Peak Monthly Actual Evapotranspiration", breaks=c(0, 0.2, 0.3333,0.4286,0.5,0.6,0.75),
+                         labels=c('0', '25', '50','75','100','150','300'))+
+      coord_fixed(ratio = 30/1,xlim = c(-40,30), ylim = c(0,1))+
+      
+      labs(title = paste("Climate of ",StationMeans[1,]$SLabel, "", sep=""))+
+      theme_bw()+
+      theme(legend.position='none', axis.text.x = element_text(angle = 90, vjust = 0, hjust = 0), 
+            axis.text.y = element_text(vjust = 0),panel.grid.major = element_line(), panel.grid.minor = element_blank()) 
+    }
 #climplot8 ----
-
+    #Moisture x pAET
+    bmm1=data.frame(x=c(0,0,1,1), y=c(0,0.6,0.6,0))
+    bmm2=data.frame(x=c(0,0,1,1), y=c(0.6,1,1,0.6))
+    
+    bm1=data.frame(y=c(0,0,1,1), x=c(0,0.1111,0.1111,0))
+    bm2=data.frame(y=c(0,0,1,1), x=c(0.1111,0.2,0.2,0.1111))
+    bm3=data.frame(y=c(0,0,1,1), x=c(0.2,0.3333,0.333,0.2))
+    bm4=data.frame(y=c(0,0,1,1), x=c(0.3333,0.5,0.5,0.3333))
+    bm5=data.frame(y=c(0,0,1,1), x=c(0.5,0.6667,0.6667,0.5))
+    bm6=data.frame(y=c(0,0,1,1), x=c(0.6667,1,1,0.6667))
+    if(input$saveselect == TRUE) #Decide whether to plot comparison graph.
+    {climplot8 <- ggplot() +
+      geom_polygon(data=bm1, mapping=aes(x=x, y=y, fill='perarid'),alpha = 0.2)+
+      geom_polygon(data=bm2, mapping=aes(x=x, y=y, fill='arid'),alpha = 0.2)+
+      geom_polygon(data=bm3, mapping=aes(x=x, y=y, fill='semiarid'),alpha = 0.2)+
+      geom_polygon(data=bm4, mapping=aes(x=x, y=y, fill='subhumid'),alpha = 0.2)+
+      geom_polygon(data=bm5, mapping=aes(x=x, y=y, fill='humid'),alpha = 0.2)+
+      geom_polygon(data=bm6, mapping=aes(x=x, y=y, fill='perhumid'),alpha = 0.2)+
+      geom_polygon(data=bmm1, mapping=aes(x=x, y=y, fill='a'),alpha = 0.1)+
+      geom_polygon(data=bmm2, mapping=aes(x=x, y=y, fill='b'),alpha = 0.1)+
+      geom_point(data=StationMeans, mapping=aes(x=Mindex, y=Dindex, color = "currentMLR"), size=0.5)+
+      #geom_density2d(data=StationMeans, mapping=aes(x=Mindex, y=Dindex), color = 'black',alpha = 0.25)+
+      geom_point(data=savedselect, mapping=aes(x=Mindex, y=Dindex, color = "savedMLRA"), size=0.5)+
+      #geom_density2d(data=savedselect, mapping=aes(x=Mindex, y=Dindex),color = 'red',alpha = 0.25)+
+      scale_fill_manual("Legend", values = c("perarid" = "red",
+                                             "arid" = "orange",
+                                             "semiarid" = "yellow",
+                                             "subhumid" = "green",
+                                             "humid" = "cyan",
+                                             "perhumid" = "blue",
+                                             
+                                             "a" = "yellow",
+                                             "b" = "cyan"
+      ),guide = 'none')+
+      scale_color_manual(values=c("black", "red"), 
+                         name="MLRA",
+                         breaks=c("currentMLR", "savedMLRA"),
+                         labels=c(currentMLR, savedMLRA))+
+      
+      scale_x_continuous(name= "P/PET Ratio", breaks=c(0, .1111, .2,0.3333,0.5,0.6667),
+                         labels=c('perarid', 'arid', 'semiarid','subhumid','humid','perhumid'))+
+      scale_y_continuous(name= "Deficit", breaks=c(0, 0.2, 0.3333,0.4286,0.5,0.6,0.75),
+                         labels=c('0', '25', '50','75','100','150','300'))+
+      coord_fixed(ratio = 1/1,xlim = c(0,1), ylim = c(0, 1))+
+      
+      labs(title = paste("Climate of ",StationMeans[1,]$SLabel, "", sep=""))+
+      theme_bw()+
+      theme(legend.position='right', axis.text.x = element_text(angle = 90, vjust = 0, hjust = 0), 
+            axis.text.y = element_text(vjust = 0),panel.grid.major = element_line(), panel.grid.minor = element_blank()) 
+    } else
+    {climplot8 <- ggplot() +
+      geom_polygon(data=bm1, mapping=aes(x=x, y=y, fill='perarid'),alpha = 0.2)+
+      geom_polygon(data=bm2, mapping=aes(x=x, y=y, fill='arid'),alpha = 0.2)+
+      geom_polygon(data=bm3, mapping=aes(x=x, y=y, fill='semiarid'),alpha = 0.2)+
+      geom_polygon(data=bm4, mapping=aes(x=x, y=y, fill='subhumid'),alpha = 0.2)+
+      geom_polygon(data=bm5, mapping=aes(x=x, y=y, fill='humid'),alpha = 0.2)+
+      geom_polygon(data=bm6, mapping=aes(x=x, y=y, fill='perhumid'),alpha = 0.2)+
+      geom_polygon(data=bmm1, mapping=aes(x=x, y=y, fill='a'),alpha = 0.1)+
+      geom_polygon(data=bmm2, mapping=aes(x=x, y=y, fill='b'),alpha = 0.1)+
+      
+      geom_point(data=StationMeans, mapping=aes(x=Mindex, y=Dindex), color = 'black', size=0.5)+
+      #geom_density2d(data=StationMeans, mapping=aes(x=Mindex, y=Dindex),color = 'black',alpha = 0.25)+
+      scale_fill_manual("Legend", values = c("perarid" = "red",
+                                             "arid" = "orange",
+                                             "semiarid" = "yellow",
+                                             "subhumid" = "green",
+                                             "humid" = "cyan",
+                                             "perhumid" = "blue",
+                                             
+                                             "a" = "yellow",
+                                             "b" = "cyan"
+      ))+
+      scale_x_continuous(name= "P/PET Ratio", breaks=c(0, .1111, .2,0.3333,0.5,0.6667),
+                         labels=c('perarid', 'arid', 'semiarid','subhumid','humid','perhumid'))+
+      scale_y_continuous(name= "Deficit", breaks=c(0, 0.2, 0.3333,0.4286,0.5,0.6,0.75),
+                         labels=c('0', '25', '50','75','100','150','300'))+
+      coord_fixed(ratio = 1/1,xlim = c(0,1), ylim = c(0, 1))+
+      
+      labs(title = paste("Climate of ",StationMeans[1,]$SLabel, "", sep=""))+
+      theme_bw()+
+      theme(legend.position='none', axis.text.x = element_text(angle = 90, vjust = 0, hjust = 0), 
+            axis.text.y = element_text(vjust = 0),panel.grid.major = element_line(), panel.grid.minor = element_blank()) 
+    } 
 #climmap ----
     graphymax = input$lat[2]#max(selectClim$Latitude)+10# 
     graphymin = input$lat[1]#min(selectClim$Latitude)-10# 
