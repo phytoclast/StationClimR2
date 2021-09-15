@@ -22,10 +22,15 @@ fluidPage(
 
   ),
   mainPanel(
-    plotOutput("climplot"),
-    verbatimTextOutput('Climtext'),
     fluidRow(
-  
+      tabsetPanel(
+      tabPanel('Plot',plotOutput("climplot")),
+      # tabPanel('Text',verbatimTextOutput('Climtext')),
+      tabPanel('Table',tableOutput('Climtab'))
+      )),
+    fluidRow(
+      verbatimTextOutput('Climtext')),
+      fluidRow(
       column(width = 2,
              radioButtons("RadioUnits", label = ("Select Units"),
                           choices = list('Metric System' = 'm', 

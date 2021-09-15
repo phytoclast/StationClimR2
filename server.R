@@ -370,7 +370,8 @@ shinyServer(function(input, output, session) {
                    "P/PET: ", round(PPETRatio,2),"; Surplus: ", round(Surplus/25.4,0)," in; Deficit: ", round(Deficit/25.4,0)," in; Peak AET: ", round(pAET/25.4,0), " in","\n", Climatetext,sep="")
     my_text2 <- if(input$RadioUnits == 'USC'){retro} else {metric}
     rv$my_text2 <- my_text2
-
+    rv$my_table <- xtable::xtable(climtab[,c('Mon', 't', 'th', 'tl', 'p', 'e')])
+    
 #climplot ----
     climplot <- ggplot(climtab, aes(x=Mon)) +
       geom_bar(stat="identity",aes(fill="Precipitation", y=p/5), alpha = 0.85,  color="blue") +
@@ -1064,5 +1065,9 @@ shinyServer(function(input, output, session) {
   })
   output$Climtext = renderText({ 
     rv$my_text2
+  })
+  
+  output$Climtab = renderTable({ 
+    rv$my_table
   })
 })
