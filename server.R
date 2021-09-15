@@ -647,7 +647,7 @@ shinyServer(function(input, output, session) {
                          name="MLRA",
                          breaks=c("currentMLR", "savedMLRA"),
                          labels=c(currentMLR, savedMLRA))+
-      scale_y_reverse(name= "Growing Season", breaks=c(6,12,18,24,30),
+      scale_y_continuous(name= "Growing Season", breaks=c(6,12,18,24,30),
                       labels=c('alpine/arctic 6', 'cool 12', 'mild 18','warm 24','hot 30'))+
       scale_x_continuous(name= "P/PET Ratio", breaks=c(0, .1111, .2,0.3333,0.5,0.6667),
                          labels=c('perarid', 'arid 0.125', 'semiarid 0.25','subhumid 0.5','humid 1','perhumid 2'))+
@@ -685,7 +685,7 @@ shinyServer(function(input, output, session) {
                                              "humid" = "cyan",
                                              "perhumid" = "blue"
       ))+
-      scale_y_reverse(name= "Growing Season", breaks=c(6,12,18,24,30),
+      scale_y_continuous(name= "Growing Season", breaks=c(6,12,18,24,30),
                       labels=c('alpine/arctic 6', 'cool 12', 'mild 18','warm 24','hot 30'))+
       scale_x_continuous(name= "P/PET Ratio", breaks=c(0, .1111, .2,0.3333,0.5,0.6667),
                          labels=c('perarid', 'arid 0.125', 'semiarid 0.25','subhumid 0.5','humid 1','perhumid 2'))+
@@ -807,7 +807,7 @@ shinyServer(function(input, output, session) {
                          name="MLRA",
                          breaks=c("currentMLR", "savedMLRA"),
                          labels=c(currentMLR, savedMLRA))+
-      scale_y_reverse(name= "Growing Season", breaks=c(6,12,18,24,30),
+      scale_y_continuous(name= "Growing Season", breaks=c(6,12,18,24,30),
                       labels=c('alpine/arctic 6', 'cool 12', 'mild 18','warm 24','hot 30'))+
       scale_x_continuous(name= "Peak Monthly Actual Evapotranspiration", breaks=c(0, 0.2, 0.3333,0.4286,0.5,0.6,0.75),
                          labels=c('0', '25', '50','75','100','150','300'))+
@@ -840,7 +840,7 @@ shinyServer(function(input, output, session) {
                                              "a" = "blue",
                                              "b" = "yellow"
       ))+
-      scale_y_reverse(name= "Growing Season", breaks=c(6,12,18,24,30),
+      scale_y_continuous(name= "Growing Season", breaks=c(6,12,18,24,30),
                       labels=c('alpine/arctic 6', 'cool 12', 'mild 18','warm 24','hot 30'))+
       scale_x_continuous(name= "Peak Monthly Actual Evapotranspiration", breaks=c(0, 0.2, 0.3333,0.4286,0.5,0.6,0.75),
                          labels=c('0', '25', '50','75','100','150','300'))+

@@ -676,4 +676,65 @@ climplot3 <- ggplot() +
   theme(legend.position='right', axis.text.x = element_text(angle = 0, vjust = 0, hjust = -0.5), axis.text.y = element_text(vjust = -2), 
         panel.grid.major = element_line(), panel.grid.minor = element_blank()) 
 
-climplot3
+
+bw1=data.frame(y=c(0,0,6,6), x=c(0,1,1,0))
+bw2=data.frame(y=c(6,6,12,12), x=c(0,1,1,0))
+bw3=data.frame(y=c(12,12,18,18), x=c(0,1,1,0))
+bw4=data.frame(y=c(18,18,24,24), x=c(0,1,1,0))
+bw5=data.frame(y=c(24,24,30,30), x=c(0,1,1,0))
+
+bmm1=data.frame(y=c(0,0,30,30), x=c(0,0.1111,0.1111,0))
+bmm2=data.frame(y=c(0,0,30,30), x=c(0.1111,0.2,0.2,0.1111))
+bmm3=data.frame(y=c(0,0,30,30), x=c(0.2,0.3333,0.333,0.2))
+bmm4=data.frame(y=c(0,0,30,30), x=c(0.3333,0.5,0.5,0.3333))
+bmm5=data.frame(y=c(0,0,30,30), x=c(0.5,0.6667,0.6667,0.5))
+bmm6=data.frame(y=c(0,0,30,30), x=c(0.6667,1,1,0.6667))
+
+
+climplot4 <- ggplot() +
+  geom_polygon(data=bw1, mapping=aes(x=x, y=y, fill='alpine'),alpha = 0.2)+
+  geom_polygon(data=bw2, mapping=aes(x=x, y=y, fill='cool'),alpha = 0.2)+
+  geom_polygon(data=bw3, mapping=aes(x=x, y=y, fill='mild'),alpha = 0.2)+
+  geom_polygon(data=bw4, mapping=aes(x=x, y=y, fill='warm'),alpha = 0.2)+
+  geom_polygon(data=bw5, mapping=aes(x=x, y=y, fill='hot'),alpha = 0.2)+
+  geom_polygon(data=bmm1, mapping=aes(x=x, y=y, fill='perarid'),alpha = 0.1)+
+  geom_polygon(data=bmm2, mapping=aes(x=x, y=y, fill='arid'),alpha = 0.1)+
+  geom_polygon(data=bmm3, mapping=aes(x=x, y=y, fill='semiarid'),alpha = 0.1)+
+  geom_polygon(data=bmm4, mapping=aes(x=x, y=y, fill='subhumid'),alpha = 0.1)+
+  geom_polygon(data=bmm5, mapping=aes(x=x, y=y, fill='humid'),alpha = 0.1)+
+  geom_polygon(data=bmm6, mapping=aes(x=x, y=y, fill='perhumid'),alpha = 0.1)+
+  geom_point(data=StationMeans, mapping=aes(x=Mindex, y=Tg, color = "currentMLR"), size=0.5)+
+  #geom_density2d(data=StationMeans, mapping=aes(x=Mindex, y=Tg), color = 'black',alpha = 0.25)+
+  geom_point(data=savedselect, mapping=aes(x=Mindex, y=Tg, color = "savedMLRA"), size=0.5)+
+  #geom_density2d(data=savedselect, mapping=aes(x=Mindex, y=Tg),color = 'red',alpha = 0.25)+
+  scale_fill_manual("Legend", values = c("alpine" = "cyan",
+                                         "cool" = "green",
+                                         "mild" = "yellow",
+                                         "warm" = "orange",
+                                         "hot" = "red",
+                                         "perarid" = "red",
+                                         "arid" = "orange",
+                                         "semiarid" = "yellow",
+                                         "subhumid" = "green",
+                                         "humid" = "cyan",
+                                         "perhumid" = "blue"
+  ),guide = 'none')+
+  scale_color_manual(values=c("black", "red"), 
+                     name="MLRA",
+                     breaks=c("currentMLR", "savedMLRA"),
+                     labels=c(currentMLR, savedMLRA))+
+  scale_y_reverse(name= "Growing Season", breaks=c(6,12,18,24,30),
+                  labels=c('alpine/arctic 6', 'cool 12', 'mild 18','warm 24','hot 30'))+
+  scale_x_continuous(name= "P/PET Ratio", breaks=c(0, .1111, .2,0.3333,0.5,0.6667),
+                     labels=c('perarid', 'arid 0.125', 'semiarid 0.25','subhumid 0.5','humid 1','perhumid 2'))+
+  coord_fixed(ratio = 1/30,ylim = c(0,30), xlim = c(0, 1))+
+  
+  labs(title = paste("Climate of ",StationMeans[1,]$SLabel, "", sep=""), vjust = 0)+
+  theme_bw()+
+  theme(legend.position='right', axis.text.x = element_text(angle = 90, vjust = 0), 
+        axis.text.y = element_text(vjust = 0), 
+        panel.grid.major = element_line(), panel.grid.minor = element_blank())
+
+climplot4
+
+  
