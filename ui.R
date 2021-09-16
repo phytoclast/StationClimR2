@@ -75,7 +75,7 @@ fluidPage(
     fluidRow(
       HTML("<font size=-2>Based on Gridded 1961-1990 Climatic Normals and estimated 2080 projections (WorldClim2). Error bars on temperature and precipitation are the 20th and 80th percentiles relative to annual variability in 1981-2010 data station records. Other graphs show each year as individual points. Click here for more information about the "),
                   tags$a(href="https://phytoclast.github.io/ClimateClassification/", "climate classification"),
-                  HTML(" used above.</font>")
+                  HTML(" used above. t = mean temperature (C or F); th = daily high temperature; tl = daily low temperature; p = monthly precipitation (mm or inch); e = potential evapotranspiration; Dl = daylength (hours); Ra = solar radiation at top of atmosphere (MJ/m2/hr); Rn = net radiation reaching earth surface.</font>")
            )
 
   )
