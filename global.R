@@ -26,6 +26,12 @@ Norms2010<- Norms2010[,c('Station_ID','Station_Name', 'State', 'Latitude', 'Long
 
 
 #functions ---- 
+mmtoin <- function(p){
+  round(p/25.4,2)
+}
+CtoF <- function(t){
+  round(t*1.8+32.4,1)
+}
 e.trans <-  function(e){
   e1 = 0.5^((e/500-1)^2)
   return(e1)
