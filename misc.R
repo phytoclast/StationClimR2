@@ -147,17 +147,38 @@ GetDayLength<- function(Month, Lat){
   Dl <- ifelse(Lat + declination*360/2/3.141592 > 89.16924, 24, ifelse(Lat - declination*360/2/3.141592 >= 90, 0, (atan(-((sin(-0.83/360*2*3.141592)-sin(declination)*sin(Lat/360*2*3.141592))/(cos(declination)*cos(Lat/360*2*3.141592)))/(-((sin(-0.83/360*2*3.141592)-sin(declination)*sin(Lat/360*2*3.141592))/(cos(declination)*cos(Lat/360*2*3.141592)))*((sin(-0.83/360*2*3.141592)-sin(declination)*sin(Lat/360*2*3.141592))/(cos(declination)*cos(Lat/360*2*3.141592)))+1)^0.5)+2*atan(1))/3.141592*24))
   return(Dl)}
 
-GetSolar <- function(Ra, Elev, th, tl){
-  Vpmin = 0.6108*exp(17.27*tl/(tl+237.3)) #saturation vapor pressure kPa
+GetVp  <- function(p,th,tl) {#Based on linear regression using 10 minute WorldClim 2.0 data with vapor pressure estimates
+  Vpmax = 0.6108*exp(17.27*climtab$th/(climtab$th+237.3)) #saturation vapor pressure kPa
+  Vpmin = 0.6108*exp(17.27*climtab$tl/(climtab$tl+237.3)) #saturation vapor pressure kPa
+  Vp0 <- (Vpmin*7.976e-01+
+            Vpmin*log(p+1)*9.499e-02+
+            Vpmin*Vpmax*-6.599e-02)
+  Vp <- pmax(0,pmin(Vpmin,Vp0))
+  return(Vp)}
+
+GetSolar <- function(Ra, Elev, th, tl, p) {#Based on linear regression using 10 minute WorldClim 2.0 data with solar radiation estimates
   Rso <- (0.75+2*10^-5*Elev)*Ra
-  Rs <- pmin(Rso,pmax(0.3*Rso, 0.14*(th-tl)^0.5*Ra)) # Estimate of normally measured solar radiation Rs/Rso is limited to 0.3-1 and using formula for Hargreaves with average constant of 0.175 for 0.16 inland and 0.19 for coastal, but reduced to 0.14 because of bias suggests it is 0.8 of the actual values at a few selected stations
+  Rs0 <- (Rso*9.521e-01+
+            Rso*log(p+1)*-9.087e-02+
+            Rso*tl*-3.644e-03+
+            Rso*log(p+1)*th*1.335e-03)
+  Rs <- pmax(0.3*Rso,pmin(Rso,Rs0))
   return(Rs)}
 
-GetNetSolar <- function(Ra, Elev, th, tl){
-  Vpmin = 0.6108*exp(17.27*tl/(tl+237.3)) #saturation vapor pressure kPa
+# GetNetSolar <- function(Ra, Elev, th, tl){
+#   Vpmin = 0.6108*exp(17.27*tl/(tl+237.3)) #saturation vapor pressure kPa
+#   Rso <- (0.75+2*10^-5*Elev)*Ra
+#   Rs <- pmin(Rso,pmax(0.3*Rso, 0.14*(th-tl)^0.5*Ra)) # Estimate of normally measured solar radiation Rs/Rso is limited to 0.3-1 and using formula for Hargreaves with average constant of 0.175 for 0.16 inland and 0.19 for coastal, but reduced to 0.14 because of bias suggests it is 0.8 of the actual values at a few selected stations
+#   Rnl <- 4.901*10^-9 * (1.35*Rs/(Rso+0.000001)-0.35) * (0.34 - 0.14 * Vpmin^0.5) * ((th+273.16)^4 + (tl+273.16)^4)/2
+#   Rns <- (1-0.23)*Rs
+#   Rn <- pmax(0,Rns - Rnl)
+#   return(Rn)}
+
+GetNetSolar <- function(Ra, Elev, th, tl, p){
+  Vp = GetVp(p,th,tl)
   Rso <- (0.75+2*10^-5*Elev)*Ra
-  Rs <- pmin(Rso,pmax(0.3*Rso, 0.14*(th-tl)^0.5*Ra)) # Estimate of normally measured solar radiation Rs/Rso is limited to 0.3-1 and using formula for Hargreaves with average constant of 0.175 for 0.16 inland and 0.19 for coastal, but reduced to 0.14 because of bias suggests it is 0.8 of the actual values at a few selected stations
-  Rnl <- 4.901*10^-9 * (1.35*Rs/(Rso+0.000001)-0.35) * (0.34 - 0.14 * Vpmin^0.5) * ((th+273.16)^4 + (tl+273.16)^4)/2
+  Rs <- GetSolar(Ra, Elev, th, tl, p)
+  Rnl <- 4.901*10^-9 * (1.35*Rs/(Rso+0.000001)-0.35) * (0.34 - 0.14 * Vp^0.5) * ((th+273.16)^4 + (tl+273.16)^4)/2
   Rns <- (1-0.23)*Rs
   Rn <- pmax(0,Rns - Rnl)
   return(Rn)}
@@ -356,7 +377,8 @@ climtab <- subset(clim.tab2, select=c(Mon,p,t,th,tl,tQ2,tQ8,pQ2,pQ8))
 climtab$t <- (climtab$th+climtab$tl)/2
 climtab$Vpmax = 0.6108*exp(17.27*climtab$th/(climtab$th+237.3)) #saturation vapor pressure kPa
 climtab$Vpmin = 0.6108*exp(17.27*climtab$tl/(climtab$tl+237.3)) #saturation vapor pressure kPa
-climtab$Vp = (climtab$Vpmax+climtab$Vpmin)/2
+climtab$Vpmean = (climtab$Vpmax+climtab$Vpmin)/2
+climtab$Vp = GetVp(p,th,tl)#actual vapor pressure kPa
 climtab$RH = climtab$Vpmin/climtab$Vp*100
 climtab$b <- ifelse(climtab$t >0, climtab$t,0)
 Tg <- pmax(mean(climtab[c(5:10),]$b),mean(climtab[c(1:4,11:12),]$b))
@@ -368,8 +390,8 @@ Tclx <- XtremLow(Tcl,Lat,Lon,Elev)
 
 #calculate radiation ----
 climtab$Ra <- GetSolarRad(climtab$Mon, Lat)
-climtab$Rs <- GetSolar(climtab$Ra, Elev, climtab$th, climtab$tl)
-climtab$Rn <- GetNetSolar(climtab$Ra, Elev, climtab$th, climtab$tl)
+climtab$Rs <- GetSolar(climtab$Ra, Elev, climtab$th, climtab$tl, climtab$p)
+climtab$Rn <- GetNetSolar(climtab$Ra, Elev, climtab$th, climtab$tl, climtab$p)
 climtab$Gi = 0.07*(climtab[monind[as.numeric(rownames(climtab))+2],]$t - climtab[monind[as.numeric(rownames(climtab))],]$t)
 
 climtab$delta <- 2503*exp(17.27*climtab$t/(climtab$t+237.3))/(climtab$t+237.3)^2
@@ -394,7 +416,7 @@ climtab$e.gs <- 0.008404*216.7*exp(17.26939*climtab$t/
 
 climtab$e.pt <- cf* 1.26 * (climtab$delta / (climtab$delta + gamma))*pmax(0,(climtab$Rn-climtab$Gi))/climtab$lambda*Days[climtab$Mon] #Priestley-Taylor
 
-climtab$e.pm <- cf* (0.408*climtab$delta*pmax(0,(climtab$Rn-climtab$Gi))+gamma*900/(climtab$t+273)*2*(climtab$Vp-climtab$Vpmin))/(climtab$delta+gamma*(1+0.34*2))*Days[climtab$Mon] #Penman-Monteith
+climtab$e.pm <- cf* (0.408*climtab$delta*pmax(0,(climtab$Rn-climtab$Gi))+gamma*900/(climtab$t+273)*2*(climtab$Vpmean-climtab$Vp))/(climtab$delta+gamma*(1+0.34*2))*Days[climtab$Mon] #Penman-Monteith
 
 climtab$e.hs <- cf* 0.408*0.0023*(climtab$t+17.78)*(climtab$th-climtab$tl)^0.5*climtab$Ra*Days[climtab$Mon]#Hargreaves Samani
 

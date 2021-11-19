@@ -195,7 +195,6 @@ shinyServer(function(input, output, session) {
       p <- station[,p.colrange[i]]* p.vert(station$p.sum1)/p.vert(station$p.sum)
       pQ2 <- p*station.Q2[,pQ.colrange[i]]/(station.Q[,p.colrange[i]] + 1)
       pQ8 <- p*station.Q8[,pQ.colrange[i]]/(station.Q[,p.colrange[i]] + 1)
-      #p <- (1-((1-station[,p.colrange[i]]/station$p.max)/(1-r.vert(station$p.ratio))*(1-r.vert(station$p.ratio1))))*station$p.max*pfactor[1]
       t <- ifelse(station[,t.colrange[i]]> station$t.mean,
                   (station[,t.colrange[i]]-station$t.mean)/station$t.rangeA*station$t.rangeA1+station$t.mean + (station$t.mean1 - station$t.mean),(station[,t.colrange[i]]-station$t.mean)/station$t.rangeB*station$t.rangeB1+station$t.mean + (station$t.mean1 - station$t.mean))[1]
       th <- t + (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*(station$td.rangeA1)/2
@@ -222,26 +221,27 @@ shinyServer(function(input, output, session) {
     Elev <- Elev1
     climtab <- subset(clim.tab2, select=c(Mon,p,t,th,tl,tQ2,tQ8,pQ2,pQ8))
     #Humidity ----
-    climtab$t <- (climtab$th+climtab$tl)/2
+    climtab$t = (climtab$th+climtab$tl)/2
     climtab$Vpmax = 0.6108*exp(17.27*climtab$th/(climtab$th+237.3)) #saturation vapor pressure kPa
     climtab$Vpmin = 0.6108*exp(17.27*climtab$tl/(climtab$tl+237.3)) #saturation vapor pressure kPa
-    climtab$Vp = (climtab$Vpmax+climtab$Vpmin)/2
-    climtab$RH = climtab$Vpmin/climtab$Vp*100
-    climtab$b <- ifelse(climtab$t >0, climtab$t,0)
-    Tg <- pmax(mean(climtab[c(5:10),]$b),mean(climtab[c(1:4,11:12),]$b))
-    Tc <- min(climtab$t)
-    Tcl <-  min(climtab$tl)
-    Tw <-  max(climtab$t)
-    Twh <-  max(climtab$th)
-    Tclx <- XtremLow(Tcl,Lat,Lon,Elev)
+    climtab$Vpmean = 0.6108*exp(17.27*climtab$t/(climtab$t+237.3))
+    climtab$Vp = GetVp(p,th,tl)#actual vapor pressure kPa
+    climtab$RH = climtab$Vp*100/climtab$Vpmean
+    climtab$b = ifelse(climtab$t >0, climtab$t,0)
+    Tg = pmax(mean(climtab[c(5:10),]$b),mean(climtab[c(1:4,11:12),]$b))
+    Tc = min(climtab$t)
+    Tcl =  min(climtab$tl)
+    Tw =  max(climtab$t)
+    Twh =  max(climtab$th)
+    Tclx = XtremLow(Tcl,Lat,Lon,Elev)
 
 
 
 
     #calculate radiation ----
     climtab$Ra <- GetSolarRad(climtab$Mon, Lat)
-    climtab$Rs <- GetSolar(climtab$Ra, Elev, climtab$th, climtab$tl)
-    climtab$Rn <- GetNetSolar(climtab$Ra, Elev, climtab$th, climtab$tl)
+    climtab$Rs <- GetSolar(climtab$Ra, Elev, climtab$th, climtab$tl, climtab$p)
+    climtab$Rn <- GetNetSolar(climtab$Ra, Elev, climtab$th, climtab$tl, climtab$p)
     climtab$Gi = 0.07*(climtab[monind[as.numeric(rownames(climtab))+2],]$t - climtab[monind[as.numeric(rownames(climtab))],]$t)
 
     climtab$delta <- 2503*exp(17.27*climtab$t/(climtab$t+237.3))/(climtab$t+237.3)^2
@@ -266,7 +266,7 @@ shinyServer(function(input, output, session) {
 
     climtab$e.pt <- cf* 1.26 * (climtab$delta / (climtab$delta + gamma))*pmax(0,(climtab$Rn-climtab$Gi))/climtab$lambda*Days[climtab$Mon] #Priestley-Taylor
 
-    climtab$e.pm <- cf* (0.408*climtab$delta*pmax(0,(climtab$Rn-climtab$Gi))+gamma*900/(climtab$t+273)*2*(climtab$Vp-climtab$Vpmin))/(climtab$delta+gamma*(1+0.34*2))*Days[climtab$Mon] #Penman-Monteith
+    climtab$e.pm <- cf* (0.408*climtab$delta*pmax(0,(climtab$Rn-climtab$Gi))+gamma*900/(climtab$t+273)*2*(climtab$Vpmean-climtab$Vp))/(climtab$delta+gamma*(1+0.34*2))*Days[climtab$Mon] #Penman-Monteith
 
     climtab$e.hs <- pmax(0, cf* 0.408*0.0023*(climtab$t+17.78)*(climtab$th-climtab$tl)^0.5*climtab$Ra*Days[climtab$Mon])#Hargreaves Samani
 
