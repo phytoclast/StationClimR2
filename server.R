@@ -225,7 +225,7 @@ shinyServer(function(input, output, session) {
     climtab$Vpmax = 0.6108*exp(17.27*climtab$th/(climtab$th+237.3)) #saturation vapor pressure kPa
     climtab$Vpmin = 0.6108*exp(17.27*climtab$tl/(climtab$tl+237.3)) #saturation vapor pressure kPa
     climtab$Vpmean = 0.6108*exp(17.27*climtab$t/(climtab$t+237.3))
-    climtab$Vp = GetVp(p,th,tl)#actual vapor pressure kPa
+    climtab$Vp = GetVp(climtab$p,climtab$th,climtab$tl)#actual vapor pressure kPa
     climtab$RH = climtab$Vp*100/climtab$Vpmean
     climtab$b = ifelse(climtab$t >0, climtab$t,0)
     Tg = pmax(mean(climtab[c(5:10),]$b),mean(climtab[c(1:4,11:12),]$b))
@@ -370,7 +370,7 @@ shinyServer(function(input, output, session) {
                    "P/PET: ", round(PPETRatio,2),"; Surplus: ", round(Surplus/25.4,0)," in; Deficit: ", round(Deficit/25.4,0)," in; Peak AET: ", round(pAET/25.4,0), " in","\n", Climatetext,sep="")
     my_text2 <- if(input$RadioUnits == 'USC'){retro} else {metric}
     rv$my_text2 <- my_text2
-    mtable <- climtab[,c('Mon', 't', 'th', 'tl', 'p', 'e', 'Dl', 'Ra', 'Rn')]
+    mtable <- climtab[,c('Mon', 't', 'th', 'tl', 'p', 'e', 'Dl', 'Ra', 'Rn','RH','Vp')]
     ftable <- mtable
     ftable[,c('t','th','tl')] <- CtoF(ftable[,c('t','th','tl')])
     ftable[,c('p','e')] <- mmtoin(ftable[,c('p','e')])

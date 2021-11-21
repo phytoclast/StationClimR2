@@ -156,8 +156,8 @@ GetDayLength<- function(Month, Lat){
 #     return(Rs)}
 
 GetVp  <- function(p,th,tl) {#Based on linear regression using 10 minute WorldClim 2.0 data with vapor pressure estimates
-  Vpmax = 0.6108*exp(17.27*climtab$th/(climtab$th+237.3)) #saturation vapor pressure kPa
-  Vpmin = 0.6108*exp(17.27*climtab$tl/(climtab$tl+237.3)) #saturation vapor pressure kPa
+  Vpmax = 0.6108*exp(17.27*th/(th+237.3)) #saturation vapor pressure kPa
+  Vpmin = 0.6108*exp(17.27*tl/(tl+237.3)) #saturation vapor pressure kPa
   Vp0 <- (Vpmin*7.976e-01+
             Vpmin*log(p+1)*9.499e-02+
             Vpmin*Vpmax*-6.599e-02)
