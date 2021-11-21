@@ -43,6 +43,7 @@ fluidPage(
     column(width = 5,
            radioButtons("RadioPET", label = ("PET Method"),
                         choiceNames = list(HTML("<font size=-3>Schmidt"), 
+                                           HTML('Schmidt2'),
                                            HTML('Thornthwaite'),
                                            HTML('Holdridge'),
                                            HTML('Priestley-Taylor'),
@@ -51,7 +52,7 @@ fluidPage(
                                            HTML('Turc'),
                                            HTML('Hamon')
                         ), 
-                        choiceValues = list('gs','tw','ho','pt','pm','hs','tc','hm'),
+                        choiceValues = list('gs','gs2','tw','ho','pt','pm','hs','tc','hm'),
                         selected = 'gs'),
            HTML("</font>")
                ),

@@ -1,0 +1,13 @@
+name: StationClimR2
+title: StationClimR2
+username:
+account: phytoclast
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 5175512
+bundleId: 5277000
+url: https://phytoclast.shinyapps.io/StationClimR2/
+when: 1637527642.39089
+lastSyncTime: 1637527642.39089
+asMultiple: FALSE
+asStatic: FALSE

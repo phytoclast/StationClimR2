@@ -173,6 +173,18 @@ GetSolar <- function(Ra, Elev, th, tl, p) {#Based on linear regression using 10 
   Rs <- pmax(0.3*Rso,pmin(Rso,Rs0))
   return(Rs)}
 
+GetPET <- function(Ra, th, tl, p){
+  Vpmax = 0.6108*exp(17.27*th/(th+237.3)) #saturation vapor pressure kPa
+  Vpmin = 0.6108*exp(17.27*tl/(tl+237.3)) #saturation vapor pressure kPa
+  logp <- log(p+1)
+  e0 <- Ra*1.398767+
+    Vpmax*23.871874+
+    Vpmin*-17.767376+
+    logp*-3.369590+
+    Ra*Vpmax*0.186131
+  e <- pmax(0,e0)
+  return(e)}
+
 # GetNetSolar <- function(Ra, Elev, th, tl){
 #   Vpmin = 0.6108*exp(17.27*tl/(tl+237.3)) #saturation vapor pressure kPa
 #   Rso <- (0.75+2*10^-5*Elev)*Ra
