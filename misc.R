@@ -1,11 +1,9 @@
+library(shiny)
 library(sf)
-library(ggplot2)
 library(plyr)
-
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-#Global -----
+#setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+#options(shiny.sanitize.errors = T)
 Norms2010 <- readRDS(file='data/Norms2010.RDS')
-
 monind <- c(12,1:12,1)
 savedselect <- readRDS(file='data/savedselect.RDS')
 
@@ -27,8 +25,13 @@ Norms2010<- Norms2010[,c('Station_ID','Station_Name', 'State', 'Latitude', 'Long
                          "pp07", "pp08", "pp09", "pp10", "pp11","pp12")]
 
 
-
 #functions ---- 
+mmtoin <- function(p){
+  round(p/25.4,2)
+}
+CtoF <- function(t){
+  round(t*1.8+32.4,1)
+}
 e.trans <-  function(e){
   e1 = 0.5^((e/500-1)^2)
   return(e1)
@@ -126,12 +129,12 @@ XtremLow <- function(Tcl, Lat, Lon, Elev){
     colorado *	1.458	+
     hawaii *	6.673	
   return(Tclx)}
+
 Days <- c(31.00, 28.25, 31.00, 30.00, 31.00, 30.00, 31.00, 31.00, 30.00, 31.00, 30.00, 31.00)
 DayNumber <- c(16.000,45.625,75.250,106.125,136.250,166.750,197.250,228.250,258.750,289.250,319.750,350.250)
 dcl <- 0.409*sin(2*3.141592*DayNumber/365-1.39)
 
 GetSolarRad <- function(Month, Lat){
-  dcl <- c(-0.36716856, -0.23248978, -0.03864644,  0.17304543,  0.33397508,  0.40733259,  0.37096065,  0.23176540,  0.03163222, -0.17702222, -0.33798947, -0.40790729)
   declination <- dcl[Month]
   
   hs <- acos(pmin(pmax(-tan(Lat/360*2*3.141592) * tan(declination),-1),1))
@@ -141,15 +144,20 @@ GetSolarRad <- function(Month, Lat){
 }
 
 GetDayLength<- function(Month, Lat){
-  dcl <- c(-0.36716856, -0.23248978, -0.03864644,  0.17304543,  0.33397508,  0.40733259,  0.37096065,  0.23176540,  0.03163222, -0.17702222, -0.33798947, -0.40790729)
   declination <- dcl[Month]
   
   Dl <- ifelse(Lat + declination*360/2/3.141592 > 89.16924, 24, ifelse(Lat - declination*360/2/3.141592 >= 90, 0, (atan(-((sin(-0.83/360*2*3.141592)-sin(declination)*sin(Lat/360*2*3.141592))/(cos(declination)*cos(Lat/360*2*3.141592)))/(-((sin(-0.83/360*2*3.141592)-sin(declination)*sin(Lat/360*2*3.141592))/(cos(declination)*cos(Lat/360*2*3.141592)))*((sin(-0.83/360*2*3.141592)-sin(declination)*sin(Lat/360*2*3.141592))/(cos(declination)*cos(Lat/360*2*3.141592)))+1)^0.5)+2*atan(1))/3.141592*24))
   return(Dl)}
 
+# GetSolar <- function(Ra, Elev, th, tl){
+#   Vpmin = 0.6108*exp(17.27*tl/(tl+237.3)) #saturation vapor pressure kPa
+#   Rso <- (0.75+2*10^-5*Elev)*Ra
+#   Rs <- pmin(Rso,pmax(0.3*Rso, 0.14*(th-tl)^0.5*Ra)) # Estimate of normally measured solar radiation Rs/Rso is limited to 0.3-1 and using formula for Hargreaves with average constant of 0.175 for 0.16 inland and 0.19 for coastal, but reduced to 0.14 because of bias suggests it is 0.8 of the actual values at a few selected stations
+#     return(Rs)}
+
 GetVp  <- function(p,th,tl) {#Based on linear regression using 10 minute WorldClim 2.0 data with vapor pressure estimates
-  Vpmax = 0.6108*exp(17.27*climtab$th/(climtab$th+237.3)) #saturation vapor pressure kPa
-  Vpmin = 0.6108*exp(17.27*climtab$tl/(climtab$tl+237.3)) #saturation vapor pressure kPa
+  Vpmax = 0.6108*exp(17.27*th/(th+237.3)) #saturation vapor pressure kPa
+  Vpmin = 0.6108*exp(17.27*tl/(tl+237.3)) #saturation vapor pressure kPa
   Vp0 <- (Vpmin*7.976e-01+
             Vpmin*log(p+1)*9.499e-02+
             Vpmin*Vpmax*-6.599e-02)
@@ -164,6 +172,18 @@ GetSolar <- function(Ra, Elev, th, tl, p) {#Based on linear regression using 10 
             Rso*log(p+1)*th*1.335e-03)
   Rs <- pmax(0.3*Rso,pmin(Rso,Rs0))
   return(Rs)}
+
+GetPET <- function(Ra, th, tl, p){
+  Vpmax = 0.6108*exp(17.27*th/(th+237.3)) #saturation vapor pressure kPa
+  Vpmin = 0.6108*exp(17.27*tl/(tl+237.3)) #saturation vapor pressure kPa
+  logp <- log(p+1)
+  e0 <- Ra*1.398767+
+    Vpmax*23.871874+
+    Vpmin*-17.767376+
+    logp*-3.369590+
+    Ra*Vpmax*0.186131
+  e <- pmax(0,e0)
+  return(e)}
 
 # GetNetSolar <- function(Ra, Elev, th, tl){
 #   Vpmin = 0.6108*exp(17.27*tl/(tl+237.3)) #saturation vapor pressure kPa
@@ -183,21 +203,23 @@ GetNetSolar <- function(Ra, Elev, th, tl, p){
   Rn <- pmax(0,Rns - Rnl)
   return(Rn)}
 
+GetTransGrow <- function(th, tl) {#Adjust to reduction in transpiration due to cold, with evaporation only outside growing season
+  b = 1
+  G0 <- (th-0+b/2)/(th-tl+b) 
+  G1 <- pmin(1,pmax(0,G0)) 
+  G <- (1+G1)/2 
+  return(G)}
+
 
 month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
-
 pre.tab <- readRDS('data/harmonized.RDS'); rownames(pre.tab) <- NULL
 listofstations <-readRDS('data/listofstations.RDS')
 if(is.null(listofstations$t01)){for (i in 1:12){
   listofstations$x <- (listofstations[,paste0('th',month[i])] + listofstations[,paste0('tl',month[i])]) /2
   colnames(listofstations)[colnames(listofstations) == 'x'] <- paste0("t", month[i])
 }}
+
 clim.tab.fill <- pre.tab
-
-Q2 <- readRDS('data/Norms2010.Q2.RDS')
-Q8 <- readRDS('data/Norms2010.Q8.RDS')
-periods <- data.frame(cbind(period=c('1961-1990','1981-2010','+2C future'), speriod=c('1990','2010','2080')))
-
 
 if(is.null(clim.tab.fill$t01)){for (i in 1:12){
   clim.tab.fill$x <- (clim.tab.fill[,paste0('th',month[i])] + clim.tab.fill[,paste0('tl',month[i])]) /2
@@ -205,7 +227,12 @@ if(is.null(clim.tab.fill$t01)){for (i in 1:12){
 }}
 
 clim.tab.fill <- subset(clim.tab.fill, !(tl07 > th07|tl01 > th01|tl02 > th02|tl03 > th03|tl04 > th04|tl05 > th05|
-                     tl06 > th06|tl08 > th08|tl09 > th09|tl10 > th10|tl11 > th11|tl12 > th12))
+                                           tl06 > th06|tl08 > th08|tl09 > th09|tl10 > th10|tl11 > th11|tl12 > th12))
+
+Q2 <- readRDS('data/Norms2010.Q2.RDS')
+Q8 <- readRDS('data/Norms2010.Q8.RDS')
+periods <- data.frame(cbind(period=c('1961-1990','1981-2010','+2C future'), speriod=c('1990','2010','2080')))
+
 #summary stats for model building table
 colrange = grep("^t01$", colnames(clim.tab.fill)):grep("^t12$", colnames(clim.tab.fill))
 clim.tab.fill$t.mean <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='mean')
@@ -223,6 +250,25 @@ colrange = grep("^p01$", colnames(clim.tab.fill)):grep("^p12$", colnames(clim.ta
 clim.tab.fill$p.max <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='max')
 clim.tab.fill$p.min <- apply(clim.tab.fill[,colrange], MARGIN = 1, FUN='min')
 clim.tab.fill$p.ratio <- r.trans(clim.tab.fill$p.min/(clim.tab.fill$p.max+0.000001))
+#summary stats for station table
+colrange = grep("^t01$", colnames(listofstations)):grep("^t12$", colnames(listofstations))
+listofstations$t.mean <- apply(listofstations[,colrange], MARGIN = 1, FUN='mean')
+listofstations$t.min <- apply(listofstations[,colrange], MARGIN = 1, FUN='min')
+listofstations$t.max <- apply(listofstations[,colrange], MARGIN = 1, FUN='max')
+colrange = grep("^th01$", colnames(listofstations)):grep("^th12$", colnames(listofstations))
+listofstations$th.mean <- apply(listofstations[,colrange], MARGIN = 1, FUN='mean')
+colrange = grep("^tl01$", colnames(listofstations)):grep("^tl12$", colnames(listofstations))
+listofstations$tl.mean <- apply(listofstations[,colrange], MARGIN = 1, FUN='mean')
+listofstations$tm.range <- t.trans(listofstations$t.max - listofstations$t.min)
+listofstations$td.range <- t.trans(listofstations$th.mean - listofstations$tl.mean)
+colrange = grep("^p01$", colnames(listofstations)):grep("^p12$", colnames(listofstations))
+listofstations$p.sum <- p.trans(apply(listofstations[,colrange], MARGIN = 1, FUN='sum'))
+colrange = grep("^p01$", colnames(listofstations)):grep("^p12$", colnames(listofstations))
+listofstations$p.max <- apply(listofstations[,colrange], MARGIN = 1, FUN='max')
+listofstations$p.min <- apply(listofstations[,colrange], MARGIN = 1, FUN='min')
+listofstations$p.ratio <- r.trans(listofstations$p.min/(listofstations$p.max+0.000001))
+
+
 
 #----
 #### Server ---- 
@@ -232,7 +278,7 @@ clim.tab <- subset(clim.tab.fill, !is.na(p.sum) & Period %in% '1990', select=c("
 
 
 station0 <- subset(listofstations,
-                  Station_Name %in% 'MT WASHINGTON NH') [1,]
+                  Station_Name %in% 'CERRO MARAVILLA PR') [1,]
 
 station <- subset(clim.tab.fill, Lat==station0$Lat & Lon==station0$Lon & Elev==station0$Elevation & Period %in% timeperiod)
 station.Q <- subset(clim.tab.fill, Lat==station0$Lat & Lon==station0$Lon & Elev==station0$Elevation & Period %in% '2010')[1,]
@@ -297,7 +343,7 @@ f.p.sumB = model.4B$coefficients[2]
 # f.p.ratioB = model.5B$coefficients[2]
 
 #Choose Elevation ----
-Elev1 = 2000
+Elev1 = 3000
 
 station$t.mean1 <- f.t.meanA * (pmin(midElev,Elev1) - pmin(midElev,station$Elev)) + f.t.meanB * (pmax(midElev,Elev1) - pmax(midElev,station$Elev)) + station$t.mean
 station$t.mean
@@ -355,7 +401,8 @@ for(i in 1:12){#i=1
   tl <- t - (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*(station$td.rangeA1)/2
   tQ2 <- t+station.Q2[,tQ.colrange[i]]-(station.Q[,t.colrange[i]])
   tQ8 <- t+station.Q8[,tQ.colrange[i]]-(station.Q[,t.colrange[i]])
-  
+  th <- pmin(pmax(th,t+0.5),t+20)
+  tl <- pmax(pmin(tl,t-0.5),t-20)
   
   p.o <- station[,p.colrange[i]]
   t.o <- station[,t.colrange[i]]
@@ -413,6 +460,8 @@ climtab$e.ho <- 58.93/365*pmax(0, climtab$t)*Days[climtab$Mon]#Holdridge
 
 climtab$e.gs <- 0.008404*216.7*exp(17.26939*climtab$t/
                                      (climtab$t+237.3))/(climtab$t+273.3)*(climtab$Ra)*Days[climtab$Mon]*abs((climtab$th - climtab$tl))^0.5 + 0.001#Schmidt
+
+climtab$e.gs2 <- GetTransGrow(climtab$th, climtab$tl)*GetPET(climtab$Ra, climtab$th, climtab$tl, climtab$p)
 
 climtab$e.pt <- cf* 1.26 * (climtab$delta / (climtab$delta + gamma))*pmax(0,(climtab$Rn-climtab$Gi))/climtab$lambda*Days[climtab$Mon] #Priestley-Taylor
 
@@ -757,6 +806,8 @@ climplot4 <- ggplot() +
         axis.text.y = element_text(vjust = 0), 
         panel.grid.major = element_line(), panel.grid.minor = element_blank())
 
-climplot4
+climplot
 
-  
+min(clim.tab.fill$th09 - clim.tab.fill$tl09)
+min(clim.tab.fill$th03 - clim.tab.fill$tl03)
+s <- subset(clim.tab.fill, th09 - tl09 < 1)

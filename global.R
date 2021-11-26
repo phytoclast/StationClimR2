@@ -203,6 +203,13 @@ GetNetSolar <- function(Ra, Elev, th, tl, p){
   Rn <- pmax(0,Rns - Rnl)
   return(Rn)}
 
+GetTransGrow <- function(th, tl) {#Adjust to reduction in transpiration due to cold, with evaporation only outside growing season
+  b = 1
+  G0 <- (th-0+b/2)/(th-tl+b) 
+  G1 <- pmin(1,pmax(0,G0)) 
+  G <- (1+G1)/2 
+  return(G)}
+
 
 month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
 pre.tab <- readRDS('data/harmonized.RDS'); rownames(pre.tab) <- NULL

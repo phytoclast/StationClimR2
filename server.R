@@ -201,7 +201,8 @@ shinyServer(function(input, output, session) {
       tl <- t - (station[,th.colrange[i]] - station[,tl.colrange[i]])/t.vert(station$td.range)*(station$td.rangeA1)/2
       tQ2 <- t+station.Q2[,tQ.colrange[i]]-(station.Q[,t.colrange[i]])
       tQ8 <- t+station.Q8[,tQ.colrange[i]]-(station.Q[,t.colrange[i]])
-      
+      th <- pmin(pmax(th,t+0.5),t+20)
+      tl <- pmax(pmin(tl,t-0.5),t-20)
       
       p.o <- station[,p.colrange[i]]
       t.o <- station[,t.colrange[i]]
@@ -263,7 +264,8 @@ shinyServer(function(input, output, session) {
 
     climtab$e.gs <- 0.008404*216.7*exp(17.26939*climtab$t/
                                          (climtab$t+237.3))/(climtab$t+273.3)*(climtab$Ra)*Days[climtab$Mon]*abs((climtab$th - climtab$tl))^0.5 + 0.001#Schmidt
-    climtab$e.gs2 <- GetPET(climtab$Ra, climtab$th, climtab$tl, climtab$p)
+    climtab$e.gs2 <- GetTransGrow(climtab$th, climtab$tl)*GetPET(climtab$Ra, climtab$th, climtab$tl, climtab$p)
+    
     climtab$e.pt <- cf* 1.26 * (climtab$delta / (climtab$delta + gamma))*pmax(0,(climtab$Rn-climtab$Gi))/climtab$lambda*Days[climtab$Mon] #Priestley-Taylor
 
     climtab$e.pm <- cf* (0.408*climtab$delta*pmax(0,(climtab$Rn-climtab$Gi))+gamma*900/(climtab$t+273)*2*(climtab$Vpmean-climtab$Vp))/(climtab$delta+gamma*(1+0.34*2))*Days[climtab$Mon] #Penman-Monteith
