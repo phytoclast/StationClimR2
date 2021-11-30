@@ -263,8 +263,10 @@ shinyServer(function(input, output, session) {
     climtab$e.ho <- 58.93/365*pmax(0, climtab$t)*Days[climtab$Mon]#Holdridge
 
     climtab$e.gs <- 0.008404*216.7*exp(17.26939*climtab$t/
-                                         (climtab$t+237.3))/(climtab$t+273.3)*(climtab$Ra)*Days[climtab$Mon]*abs((climtab$th - climtab$tl))^0.5 + 0.001#Schmidt
-    climtab$e.gs2 <- GetTransGrow(climtab$th, climtab$tl)*GetPET(climtab$Ra, climtab$th, climtab$tl, climtab$p)
+                                         (climtab$t+237.3))/(climtab$t+273.3)*(climtab$Ra)*Days[climtab$Mon]*abs((climtab$th - climtab$tl))^0.5 + 0.001#Schmidt.2018
+    # var.a = 0.0000641357278041525; var.c = 0.0226701035899885
+    # climtab$e.gs <- climtab$Ra*var.a/(1-var.c*climtab$t)*Days[climtab$Mon]*1000
+    climtab$e.gs2 <- GetTransGrow(climtab$th, climtab$tl)*GetPET(climtab$Ra, climtab$th, climtab$tl, climtab$p)*Days[climtab$Mon] #Schmidt.2021
     
     climtab$e.pt <- cf* 1.26 * (climtab$delta / (climtab$delta + gamma))*pmax(0,(climtab$Rn-climtab$Gi))/climtab$lambda*Days[climtab$Mon] #Priestley-Taylor
 
