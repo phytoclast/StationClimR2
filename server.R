@@ -266,8 +266,8 @@ shinyServer(function(input, output, session) {
                                          (climtab$t+237.3))/(climtab$t+273.3)*(climtab$Ra)*Days[climtab$Mon]*abs((climtab$th - climtab$tl))^0.5 + 0.001#Schmidt.2018
     # var.a = 0.0000641357278041525; var.c = 0.0226701035899885
     # climtab$e.gs <- climtab$Ra*var.a/(1-var.c*climtab$t)*Days[climtab$Mon]*1000
-    climtab$e.gs2 <- GetTransGrow(climtab$th, climtab$tl)*GetPET(climtab$Ra, climtab$th, climtab$tl, climtab$p)*Days[climtab$Mon] #Schmidt.2021
-    
+    climtab$e.gs2 <- 0.85829*GetTransGrow(climtab$th, climtab$tl)*GetPET(climtab$Ra, climtab$th, climtab$tl, climtab$p)*Days[climtab$Mon] #Schmidt.2021 0.85829 is crop coefficient to make comparable to Thornthwaite. Holdridge and Schmidt.2018 would be even lower.
+
     climtab$e.pt <- cf* 1.26 * (climtab$delta / (climtab$delta + gamma))*pmax(0,(climtab$Rn-climtab$Gi))/climtab$lambda*Days[climtab$Mon] #Priestley-Taylor
 
     climtab$e.pm <- cf* (0.408*climtab$delta*pmax(0,(climtab$Rn-climtab$Gi))+gamma*900/(climtab$t+273)*2*(climtab$Vpmean-climtab$Vp))/(climtab$delta+gamma*(1+0.34*2))*Days[climtab$Mon] #Penman-Monteith
