@@ -207,7 +207,7 @@ GetNetSolar <- function(Ra, Elev, th, tl, p){
 GetTransGrow <- function(th, tl) {#Adjust to reduction in transpiration due to cold, with evaporation only outside growing season
   b = 2 #spacer number making the temperature range wider
   ts = 0.8 #assumed T/ET ratio during growing season
-  tw = 0.1 #assumed T/ET ratio during freezing season
+  tw = 0.0 #assumed T/ET ratio during freezing season
   G0 <- (th-0+b/2)/(th-tl+b) 
   G1 <- pmin(1,pmax(0,G0)) #proportion of monthly temperature above freezing considering daily temperature range
   evmin = (tw)+(1-ts)
