@@ -53,7 +53,7 @@ fluidPage(
                                            HTML('Hamon')
                         ), 
                         choiceValues = list('gs','gs2','tw','ho','pt','pm','hs','tc','hm'),
-                        selected = 'gs'),
+                        selected = 'gs2'),
            HTML("</font>")
                ),
     column(width = 5,
