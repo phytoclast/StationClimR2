@@ -215,6 +215,17 @@ GetTransGrow <- function(th, tl) {#Adjust to reduction in transpiration due to c
   G = G1*(1-evmin)+evmin
   return(G)}
 
+Getp3AET <- function(p,e){
+  paet <- pmin(p,e)
+  paet1 <- c(paet[11:12],paet,paet[1:2])
+  for(i in 1:12){
+    paet0 <- sum(paet1[(i):(i+2)])
+    if(i==1){p3AET=paet0}else{
+      p3AET=pmax(p3AET, paet0)
+    }}
+  return(p3AET)}
+
+
 
 month <- c('01','02','03','04','05','06','07','08','09','10','11','12')
 pre.tab <- readRDS('data/harmonized.RDS'); rownames(pre.tab) <- NULL

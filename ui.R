@@ -42,8 +42,8 @@ fluidPage(
       
     column(width = 5,
            radioButtons("RadioPET", label = ("PET Method"),
-                        choiceNames = list(HTML("<font size=-3>Schmidt"), 
-                                           HTML('Schmidt2'),
+                        choiceNames = list(HTML("<font size=-3>Default"), 
+                                           
                                            HTML('Thornthwaite'),
                                            HTML('Holdridge'),
                                            HTML('Priestley-Taylor'),
@@ -52,7 +52,7 @@ fluidPage(
                                            HTML('Turc'),
                                            HTML('Hamon')
                         ), 
-                        choiceValues = list('gs','gs2','tw','ho','pt','pm','hs','tc','hm'),
+                        choiceValues = list('gs2','tw','ho','pt','pm','hs','tc','hm'),
                         selected = 'gs2'),
            HTML("</font>")
                ),
@@ -61,14 +61,15 @@ fluidPage(
                         choiceNames = list(HTML("<font size=-3>Monthly"), 
                                            HTML("Summer × Winter"),
                                            HTML("Summer × Moisture"), 
-                                           HTML("Surplus × Deficit"),
-                                           HTML("Summer × pAET"),  
-                                           HTML("Winter × pAET"),
-                                           HTML("Moisture × Deficit"),
-                                           HTML("Moisture × Seasonality"),
+                                           # HTML("Surplus × Deficit"),
+                                           # HTML("Summer × pAET"),  
+                                           # HTML("Winter × pAET"),
+                                           # HTML("Moisture × Deficit"),
+                                           # HTML("Moisture × Seasonality"),
                                            HTML("Map</font>")),
                         
-                        choiceValues = list(1,2,4,5,6,7,8,3,9),
+                        # choiceValues = list(1,2,4,5,6,7,8,3,9),
+                        choiceValues = list(1,2,4,9),
                         selected = 1),
            
            HTML("</font>")

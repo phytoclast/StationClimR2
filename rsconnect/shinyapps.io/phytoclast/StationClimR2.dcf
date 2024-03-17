@@ -5,10 +5,8 @@ account: phytoclast
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 5175512
-bundleId: 5371110
+bundleId: 8382598
 url: https://phytoclast.shinyapps.io/StationClimR2/
-when: 1639486566.28582
-lastSyncTime: 1639486566.28582
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: .gitattributes

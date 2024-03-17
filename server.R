@@ -285,29 +285,31 @@ shinyServer(function(input, output, session) {
     climtab$a <- pmin(climtab$e, climtab$p)
 
     pAET <- max(climtab$a)
+    p3AET <- Getp3AET(climtab$p, climtab$a)
     PET <- sum(climtab$e)
     MAP <- sum(climtab$p)
     AET <- sum(climtab$a)
     MAAT <- mean(climtab$t)
     Deficit <- max(PET - AET, 0)
     Surplus <- max(MAP - AET, 0)
+    Sindex <- (PET - Deficit)/(PET +0.0001)
     PPETRatio <- MAP/(PET +0.0001)
     Mindex <- PPETRatio/(PPETRatio+1)
     SLabel <- paste0(station0$Station_Name, " @ ",Elev, ' m (', periods[periods$speriod %in% timeperiod,]$period,')')
     # Additional indices
 
 
-    StationMeans <- as.data.frame(cbind(Lat, Lon, Elev, Tg, Tc, Tcl,Tw, Twh, Tclx, pAET, PET, MAP, AET, MAAT, Deficit, Surplus, PPETRatio, Mindex))
+    StationMeans <- as.data.frame(cbind(Lat, Lon, Elev, Tg, Tc, Tcl,Tw, Twh, Tclx, p3AET, PET, MAP, AET, MAAT, Deficit, Surplus, PPETRatio, Mindex))
     StationMeans <- cbind(SLabel,StationMeans)
     StationMeans$SP1 <- round(ifelse(StationMeans$PPETRatio < 0.5 & StationMeans$Surplus < 25, pmax(StationMeans$Surplus/25)  ,1),15)
-    StationMeans$SP2 <- round(ifelse(StationMeans$SP1 >= 1, ifelse(StationMeans$pAET < 75 & (StationMeans$Deficit >= 150 | StationMeans$PPETRatio < 1), pmax(StationMeans$pAET/75, 150/(StationMeans$Deficit+150)),1),0),15)
+    StationMeans$SP2 <- round(ifelse(StationMeans$SP1 >= 1, ifelse(StationMeans$p3AET < 180 & (StationMeans$Deficit >= 150 | StationMeans$PPETRatio < 1), pmax(StationMeans$p3AET/180, 150/(StationMeans$Deficit+150)),1),0),15)
     StationMeans$SP3 <- round(ifelse(StationMeans$SP2 >= 1, ifelse(StationMeans$Deficit >= 150 | StationMeans$PPETRatio < 1, pmax(150/(StationMeans$Deficit+150)),1),0),15)
     StationMeans$SP4 <- round(ifelse(StationMeans$SP3 >= 1, pmin(1-StationMeans$Deficit/150),0),15)
     StationMeans$SPindex <- StationMeans$SP1 + StationMeans$SP2 + StationMeans$SP3 + StationMeans$SP4 + 1 #Seasonal precipitation index
     StationMeans$Cindex <- pmin(StationMeans$Tclx+15, StationMeans$Tc) #Cold index
     StationMeans$Dindex <- StationMeans$Deficit/(StationMeans$Deficit + 100)
     StationMeans$Sindex <- StationMeans$Surplus/(StationMeans$Surplus + 100)
-    StationMeans$Aindex <- StationMeans$pAET/(StationMeans$pAET + 100)
+    StationMeans$Aindex <- StationMeans$p3AET/(StationMeans$p3AET + 100)
 
     #Swap out the external data to a separate data frame and retain internal data for graphs.
     if(input$saveselect == FALSE)
@@ -320,8 +322,8 @@ shinyServer(function(input, output, session) {
     
     #classify ----
     Seasonalilty <- ifelse(Deficit < 150 & PPETRatio>=1, "Isopluvial",
-                           ifelse(Surplus < 25 & PPETRatio < 0.5, ifelse(pAET < 75, "Isoxeric","Pluvioxeric"),
-                                  ifelse(pAET < 75,"Xerothermic","Pluviothermic")))
+                           ifelse(Surplus < 25 & PPETRatio < 0.5, ifelse(p3AET < 180, "Isoxeric","Pluvioxeric"),
+                                  ifelse(p3AET < 180,"Xerothermic","Pluviothermic")))
 
 
 
@@ -340,20 +342,20 @@ shinyServer(function(input, output, session) {
 
 
     BioTemperatureC <-
-      ifelse(Tc >= 20 & Tclx >=5,"Meso-Tropical",
-             ifelse(Tc >= 15 & Tclx >=0,"Cryo-Tropical",
-                    ifelse(Tc >= 10 & Tclx >=-5,"Thermo-Sutropical",
-                           ifelse(Tc >= 5 & Tclx >=-10,"Meso-Subtropical",
-                                  ifelse(Tc >= 0 & Tclx >=-15,"Cryo-Subtropical",
-                                         ifelse(Tc >= -5 & Tclx >=-20,"Thermo-Temperate",
-                                                ifelse(Tc >= -10 & Tclx >=-25,"Meso-Temperate",
-                                                       ifelse(Tc >= -25 & Tclx >=-40,"Cryo-Temperate","Polar"
+      ifelse(Tc >= 20 & Tclx >=5,"Megathermal",
+             ifelse(Tc >= 15 & Tclx >=0,"Megathermal",
+                    ifelse(Tc >= 10 & Tclx >=-5,"Mesothermal",
+                           ifelse(Tc >= 5 & Tclx >=-10,"Mesothermal",
+                                  ifelse(Tc >= 0 & Tclx >=-15,"Mesothermal",
+                                         ifelse(Tc >= -5 & Tclx >=-20,"Microthermal",
+                                                ifelse(Tc >= -10 & Tclx >=-25,"Microthermal",
+                                                       ifelse(Tc >= -25 & Tclx >=-40,"Microthermal","Microthermal"
                                                        ))))))))
 
     BioTemperatureW <- ifelse(Tg >= 24,"Hot (Lowland)",
                               ifelse(Tg >= 18,"Warm (Premontane)",
-                                     ifelse(Tg >= 15,"Warm-Mild (Lower-Montane)",
-                                            ifelse(Tg >= 12,"Cool-Mild (Upper-Montane)",
+                                     ifelse(Tg >= 15,"Mild (Montane)",
+                                            ifelse(Tg >= 12,"Mild (Montane)",
                                                    ifelse(Tg >= 6,"Cool (Subalpine)","Cold (Alpine)"
                                                    )))))
     Climatetext<-paste(BioTemperatureW," ",BioTemperatureC,", ",MRegime," ",Seasonalilty, sep="" )
@@ -365,13 +367,13 @@ shinyServer(function(input, output, session) {
                     "MAAT: ",round(MAAT,digits=1),"°C;  ","MAP: ", round(MAP,0)," mm  ","\n",
                     "Warm Month: ", round(Tw,1),"°C; High: ",round(Twh,1),"°C; ", "Cold Month: ", round(Tc,1),"°C; Low: ",round(Tcl,1),"°C","\n",
                     "Growing Season Temperature: ",round(Tg,digits=1),"°C; Annual Extreme Low: ", round(Tclx,1),"°C","\n",
-                    "P/PET: ", round(PPETRatio,2),"; Surplus: ", round(Surplus,0)," mm; Deficit: ", round(Deficit,0)," mm; Peak AET: ", round(pAET,0), " mm","\n", Climatetext,sep="")
+                    "P/PET: ", round(PPETRatio,2),"; Surplus: ", round(Surplus,0)," mm; Deficit: ", round(Deficit,0)," mm","\n","Annual Moisture Index:", round(Mindex,2), "; Seasonal Moisture Index: ", round(Sindex,2),"; Peak 3-month AET: ", round(p3AET,0), " mm","\n", Climatetext,sep="")
     #, "SPindex: ",round(SPindex,2),"; Cindex: ",round(Cindex,2),"\n"
     retro <- paste("Lat: ",round(Lat,digits=2),"°;  Lon: ", round(Lon,digits=2),"°;  Elev: ",round(Elev/0.3048,digits=0)," ft","\n",
                    "Annual Temperature: ",round(MAAT*1.8+32,digits=0),"°F;  ","Annual Precipitation: ", round(MAP/25.4,0)," in  ","\n",
                    "Warm Month: ", round(Tw*1.8+32,0),"°F; High: ",round(Twh*1.8+32,0),"°F; ", "Cold Month: ", round(Tc*1.8+32,0),"°F; Low: ",round(Tcl*1.8+32,0),"°F","\n",
                    "Growing Season Temperature: ",round(Tg*1.8+32,digits=0),"°F; Annual Extreme Low: ", round(Tclx*1.8+32,0),"°F","\n",
-                   "P/PET: ", round(PPETRatio,2),"; Surplus: ", round(Surplus/25.4,0)," in; Deficit: ", round(Deficit/25.4,0)," in; Peak AET: ", round(pAET/25.4,0), " in","\n", Climatetext,sep="")
+                   "P/PET: ", round(PPETRatio,2),"; Surplus: ", round(Surplus/25.4,0)," in; Deficit: ", round(Deficit/25.4,0)," in; Peak 3-month AET: ", round(p3AET/25.4,0), " in","\n", Climatetext,sep="")
     my_text2 <- if(input$RadioUnits == 'USC'){retro} else {metric}
     rv$my_text2 <- my_text2
     mtable <- climtab[,c('Mon', 't', 'th', 'tl', 'p', 'e', 'Dl', 'Ra', 'Rn','RH','Vp')]
@@ -862,7 +864,7 @@ shinyServer(function(input, output, session) {
     }
     
 #climplot7 ----
-    #winter x pAET
+    #winter x p3AET
     bw1=data.frame(x=c(-100,-100,-25,-25), y=c(0,1,1,0))
     bw2=data.frame(x=c(-25,-25,0,0), y=c(0,1,1,0))
     bw3=data.frame(x=c(0,0,15,15), y=c(0,1,1,0))
@@ -952,7 +954,7 @@ shinyServer(function(input, output, session) {
             axis.text.y = element_text(vjust = 0),panel.grid.major = element_line(), panel.grid.minor = element_blank()) 
     }
 #climplot8 ----
-    #Moisture x pAET
+    #Moisture x p3AET
     bmm1=data.frame(x=c(0,0,1,1), y=c(0,0.6,0.6,0))
     bmm2=data.frame(x=c(0,0,1,1), y=c(0.6,1,1,0.6))
     
