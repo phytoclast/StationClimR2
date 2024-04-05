@@ -1,6 +1,6 @@
 library(shiny)
 library(sf)
-library(plyr)
+library(dplyr)
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 #options(shiny.sanitize.errors = T)
 Norms2010 <- readRDS(file='data/Norms2010.RDS')

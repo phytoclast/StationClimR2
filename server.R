@@ -2,7 +2,7 @@
 #
 library(shiny)
 library(ggplot2)
-library(plyr)
+library(dplyr)
 library(xtable)
 
 ######
@@ -396,7 +396,7 @@ shinyServer(function(input, output, session) {
       scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10,11,12), labels=c('01','02','03','04','05','06','07','08','09','10','11','12'))+
       scale_y_continuous(name= "Temperature",
                          breaks=c(-20,-15,-10,-5,0,5,10,15,20,25,30,35,40,45), labels=c('-20 (-4)', '-15 (  5)', '-10 (14)', '-5 (23)', '0 (32)', '5 (41)', '10 (50)', '15 (59)', '20 (68)', '25 (77)', '30 (86)', '35 (95)', '40 (104)', '°C (°F)'),
-                         sec.axis = sec_axis(trans = ~.*1,
+                         sec.axis = sec_axis(transform = ~.*1,
                                              name = "Precipitation",
                                              breaks=c(0,5,10,15,20,25,30,35,40,45),
                                              labels = c('0', '25   (1)', '50   (2)', '75   (3)', '100 (4)', '125 (5)', '150 (6)', '175 (7)', '200 (8)', 'mm (in)')))+
@@ -409,10 +409,10 @@ shinyServer(function(input, output, session) {
     
 #climplot2 ----
     a1=data.frame(x=c(-50,-50,0,0), y=c(0,6,6,0))
-    a2=data.frame(x=c(-50,-50,0,0), y=c(6,12,12,6))
+    a2=data.frame(x=c(-50,-50,0,-6), y=c(6,12,12,6))
     a3=data.frame(x=c(-50,-50,0,0), y=c(12,36,36,12))
     a4=data.frame(x=c(0,0,6,0), y=c(0,6,6,0))
-    a5=data.frame(x=c(0,0,18,6), y=c(6,18,18,6))
+    a5=data.frame(x=c(-6,0,0,18,6), y=c(6,12,18,18,6))
     a6=data.frame(x=c(0,0,15,15), y=c(18,36,36,18))
     a7=data.frame(x=c(15,15,36,18), y=c(18,36,36,18))
 
@@ -722,7 +722,7 @@ shinyServer(function(input, output, session) {
       geom_polygon(data=b2, mapping=aes(x=x, y=y, fill='a'),alpha = 0.2)+
       geom_polygon(data=b3, mapping=aes(x=x, y=y, fill='d'),alpha = 0.2)+
       geom_polygon(data=b4, mapping=aes(x=x, y=y, fill='c'),alpha = 0.2)+
-      geom_line(data=humidline, mapping=aes(x=x, y=y, fill='c'),color = 'black',alpha = 0.2)+
+      geom_line(data=humidline, mapping=aes(x=x, y=y),color = 'black',alpha = 0.2)+
       geom_point(data=StationMeans, mapping=aes(x=Dindex, y=Sindex, color = "currentMLR"), size=0.5)+
       #geom_density2d(data=StationMeans, mapping=aes(x=Dindex, y=Sindex), color = 'black',alpha = 0.25)+
       geom_point(data=savedselect, mapping=aes(x=Dindex, y=Sindex, color = "savedMLRA"), size=0.5)+
@@ -754,7 +754,7 @@ shinyServer(function(input, output, session) {
       geom_polygon(data=b2, mapping=aes(x=x, y=y, fill='a'),alpha = 0.2)+
       geom_polygon(data=b3, mapping=aes(x=x, y=y, fill='d'),alpha = 0.2)+
       geom_polygon(data=b4, mapping=aes(x=x, y=y, fill='c'),alpha = 0.2)+
-      geom_line(data=humidline, mapping=aes(x=x, y=y, fill='c'),color = 'black',alpha = 0.2)+
+      geom_line(data=humidline, mapping=aes(x=x, y=y),color = 'black',alpha = 0.2)+
       geom_point(data=StationMeans, mapping=aes(x=Dindex, y=Sindex), color = 'black', size=0.5)+
       #geom_density2d(data=StationMeans, mapping=aes(x=Dindex, y=Sindex),color = 'black',alpha = 0.25)+
       scale_fill_manual("Legend", values = c(
