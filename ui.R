@@ -11,16 +11,22 @@ fluidPage(
     htmlOutput("setelev"),
     htmlOutput("lat"),
     htmlOutput("lon"),
-    checkboxInput("saveselect", label = "Compare Station", value = FALSE),
-    radioButtons("timeperiod", label = ("Time Period"),
-                 choices = list('1961-1990 Normals' = '1990', 
-                                '1981-2010 Normals' = '2010', 
-                 '+2C Projections' = '2080'), 
-                 selected = '1990')
-    
-
-
-  ),
+    fluidRow(
+      sliderInput(
+        'root', 'Effective root depth (cm)', 100, min = 0, max = 500, step = 10)),
+    fluidRow(
+      column(6,radioButtons("timeperiod", label = ("Time Period"),
+                            choices = list('1961-1990 Normals' = '1990', 
+                                           '1981-2010 Normals' = '2010', 
+                                           '+2C Projections' = '2080'), 
+                            selected = '1990')),
+      column(6,radioButtons(
+        'soil','soil texture', choices = c('gravel'=0.04,sand=0.06535,'loam'=0.1104667,'muck'=0.5413333), selected =0.06535))),
+    fluidRow(
+      column(6,checkboxInput("saveselect", label = "Compare Station", value = FALSE)),
+      column(6,checkboxInput("simplebar", label = "Simple Bar Graph", value = FALSE))),
+    fluidRow(verbatimTextOutput('AWC'))
+      ),
   mainPanel(
     fluidRow(
       tabsetPanel(

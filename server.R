@@ -3,12 +3,16 @@
 library(shiny)
 library(ggplot2)
 library(dplyr)
+library(climatools)
 library(xtable)
 
 ######
 # Define server logic
 shinyServer(function(input, output, session) {
-  rv <- reactiveValues(my_text = "") 
+  rv <- reactiveValues(my_text = "")
+  output$AWC <- renderText({
+    paste("Available water holding capacity",round(as.numeric(input$soil)*input$root*10,1),"mm.")
+  })
   output$stationselect = renderUI({
     
     liststations1 <- subset(listofstations,
@@ -282,16 +286,19 @@ shinyServer(function(input, output, session) {
 
     #Set PET method
     climtab$e <- climtab[,paste0('e.', input$RadioPET)]
-    climtab$a <- pmin(climtab$e, climtab$p)
-
-    pAET <- max(climtab$a)
-    p3AET <- Getp3AET(climtab$p, climtab$a)
+    climtab$aa <- pmin(climtab$e, climtab$p)
+    awc <- as.numeric(input$soil)*input$root*10
+    climtab<-climtab|>cbind(SoilWaterBudget(climtab$p, climtab$e, awc=awc))
+    pAET <- max(climtab$aa)
+    p3AET <- Getp3AET(climtab$p, climtab$aa)
     PET <- sum(climtab$e)
     MAP <- sum(climtab$p)
-    AET <- sum(climtab$a)
+    AET <- sum(climtab$aa)
+    sAET <- sum(climtab$a)
     MAAT <- mean(climtab$t)
     Deficit <- max(PET - AET, 0)
     Surplus <- max(MAP - AET, 0)
+    Sd <- 100-sAET/(PET+0.01)*100
     Sindex <- (PET - Deficit)/(PET +0.0001)
     PPETRatio <- MAP/(PET +0.0001)
     Mindex <- PPETRatio/(PPETRatio+1)
@@ -367,13 +374,17 @@ shinyServer(function(input, output, session) {
                     "MAAT: ",round(MAAT,digits=1),"°C;  ","MAP: ", round(MAP,0)," mm  ","\n",
                     "Warm Month: ", round(Tw,1),"°C; High: ",round(Twh,1),"°C; ", "Cold Month: ", round(Tc,1),"°C; Low: ",round(Tcl,1),"°C","\n",
                     "Growing Season Temperature: ",round(Tg,digits=1),"°C; Annual Extreme Low: ", round(Tclx,1),"°C","\n",
-                    "P/PET: ", round(PPETRatio,2),"; Surplus: ", round(Surplus,0)," mm; Deficit: ", round(Deficit,0)," mm","\n","Annual Moisture Index:", round(Mindex,2), "; Seasonal Moisture Index: ", round(Sindex,2),"; Peak 3-month AET: ", round(p3AET,0), " mm","\n", Climatetext,sep="")
+                    "P/PET: ", round(PPETRatio,2),"; Surplus: ", round(Surplus,0)," mm; Deficit: ", round(Deficit,0)," mm;"," Seasonal Soil Moisture Deficit: ", round(Sd,0)," mm;\n",
+                    "Annual Moisture Index:", round(Mindex,2), "; Seasonal Moisture Index: ", round(Sindex,2),"; Peak 3-month AET: ", round(p3AET,0), " mm","\n", 
+                    Climatetext,sep="")
     #, "SPindex: ",round(SPindex,2),"; Cindex: ",round(Cindex,2),"\n"
     retro <- paste("Lat: ",round(Lat,digits=2),"°;  Lon: ", round(Lon,digits=2),"°;  Elev: ",round(Elev/0.3048,digits=0)," ft","\n",
                    "Annual Temperature: ",round(MAAT*1.8+32,digits=0),"°F;  ","Annual Precipitation: ", round(MAP/25.4,0)," in  ","\n",
                    "Warm Month: ", round(Tw*1.8+32,0),"°F; High: ",round(Twh*1.8+32,0),"°F; ", "Cold Month: ", round(Tc*1.8+32,0),"°F; Low: ",round(Tcl*1.8+32,0),"°F","\n",
                    "Growing Season Temperature: ",round(Tg*1.8+32,digits=0),"°F; Annual Extreme Low: ", round(Tclx*1.8+32,0),"°F","\n",
-                   "P/PET: ", round(PPETRatio,2),"; Surplus: ", round(Surplus/25.4,0)," in; Deficit: ", round(Deficit/25.4,0)," in; Peak 3-month AET: ", round(p3AET/25.4,0), " in","\n", Climatetext,sep="")
+                   "P/PET: ", round(PPETRatio,2),"; Surplus: ", round(Surplus/25.4,0)," in; Deficit: ", round(Deficit/25.4,0)," in;", "Seasonal Soil Moisture Deficit: ", round(Sd/25.4,0)," in;\n",
+                   "Annual Moisture Index:", round(Mindex,2), "; Seasonal Moisture Index: ", round(Sindex,2),"Peak 3-month AET: ", round(p3AET/25.4,0), " in","\n",
+                   Climatetext,sep="")
     my_text2 <- if(input$RadioUnits == 'USC'){retro} else {metric}
     rv$my_text2 <- my_text2
     mtable <- climtab[,c('Mon', 't', 'th', 'tl', 'p', 'e', 'Dl', 'Ra', 'Rn','RH','Vp')]
@@ -383,29 +394,45 @@ shinyServer(function(input, output, session) {
     rv$my_table <- if(input$RadioUnits == 'USC'){xtable(ftable)} else {xtable(mtable)}
     
 #climplot ----
-    climplot <- ggplot(climtab, aes(x=Mon)) +
-      geom_bar(stat="identity",aes(fill="Precipitation", y=p/5), alpha = 0.85,  color="blue") +
-      geom_bar(stat="identity", aes(fill='PET', y=e/5), alpha = 0.60,  color="red" ) +
-      geom_line(stat="identity",  aes(color= "Temperature", y=t), alpha = 1) +
-      geom_point(aes(shape='Mean', y=t), color="red") +
-      geom_point(aes(shape='Low', y=tl), color="red") +
-      geom_point(aes(shape='High', y=th), color="red") +
-      geom_errorbar(aes(ymin=pQ2/5, ymax=pQ8/5), width=.2,position=position_dodge(-0.9), color="blue") +
-      geom_errorbar(aes(ymin=tQ2, ymax=tQ8), width=.2,position=position_dodge(0.9), color="red") +
-      
-      scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10,11,12), labels=c('01','02','03','04','05','06','07','08','09','10','11','12'))+
-      scale_y_continuous(name= "Temperature",
-                         breaks=c(-20,-15,-10,-5,0,5,10,15,20,25,30,35,40,45), labels=c('-20 (-4)', '-15 (  5)', '-10 (14)', '-5 (23)', '0 (32)', '5 (41)', '10 (50)', '15 (59)', '20 (68)', '25 (77)', '30 (86)', '35 (95)', '40 (104)', '°C (°F)'),
-                         sec.axis = sec_axis(transform = ~.*1,
-                                             name = "Precipitation",
-                                             breaks=c(0,5,10,15,20,25,30,35,40,45),
-                                             labels = c('0', '25   (1)', '50   (2)', '75   (3)', '100 (4)', '125 (5)', '150 (6)', '175 (7)', '200 (8)', 'mm (in)')))+
-      theme(legend.position="bottom") +
-      scale_fill_manual("Legend", values = c("Precipitation" = "cyan", "PET" = "yellow"))+
-      scale_color_manual("",values = c("Temperature" = "red", "Mean" = "red", "Low" = "red", "High"="red","Growth"="darkgreen"))+
-      scale_shape_manual("",values = c("Mean" = 19, "Low" = 6, "High"=2))+
-      coord_fixed(ratio = 1/9,xlim = c(1,12), ylim = c(-20, 43))+
-      labs(title = paste0("Climate of ",station0$Station_Name, ": est. @ ",Elev, ' m (', periods[periods$speriod %in% timeperiod,]$period,')'))# ,  subtitle = my_text1)
+
+    
+    climplot <- makeClimplot( t=climtab$t,
+                              p=climtab$p,
+                              th = climtab$th,
+                              tl = climtab$tl,
+                              e = climtab$e,
+                              a = climtab$a,
+                              u = climtab$u,
+                              t80 = climtab$tQ8,
+                              t20 = climtab$tQ2,
+                              p80 = climtab$pQ8,
+                              p20 = climtab$pQ2,
+                              name = station0$Station_Name,
+                              bar = input$simplebar)
+  
+    # climplot <- ggplot(climtab, aes(x=Mon)) +
+    #   geom_bar(stat="identity",aes(fill="Precipitation", y=p/5), alpha = 0.85,  color="blue") +
+    #   geom_bar(stat="identity", aes(fill='PET', y=e/5), alpha = 0.60,  color="red" ) +
+    #   geom_line(stat="identity",  aes(color= "Temperature", y=t), alpha = 1) +
+    #   geom_point(aes(shape='Mean', y=t), color="red") +
+    #   geom_point(aes(shape='Low', y=tl), color="red") +
+    #   geom_point(aes(shape='High', y=th), color="red") +
+    #   geom_errorbar(aes(ymin=pQ2/5, ymax=pQ8/5), width=.2,position=position_dodge(-0.9), color="blue") +
+    #   geom_errorbar(aes(ymin=tQ2, ymax=tQ8), width=.2,position=position_dodge(0.9), color="red") +
+    #   
+    #   scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10,11,12), labels=c('01','02','03','04','05','06','07','08','09','10','11','12'))+
+    #   scale_y_continuous(name= "Temperature",
+    #                      breaks=c(-20,-15,-10,-5,0,5,10,15,20,25,30,35,40,45), labels=c('-20 (-4)', '-15 (  5)', '-10 (14)', '-5 (23)', '0 (32)', '5 (41)', '10 (50)', '15 (59)', '20 (68)', '25 (77)', '30 (86)', '35 (95)', '40 (104)', '°C (°F)'),
+    #                      sec.axis = sec_axis(transform = ~.*1,
+    #                                          name = "Precipitation",
+    #                                          breaks=c(0,5,10,15,20,25,30,35,40,45),
+    #                                          labels = c('0', '25   (1)', '50   (2)', '75   (3)', '100 (4)', '125 (5)', '150 (6)', '175 (7)', '200 (8)', 'mm (in)')))+
+    #   theme(legend.position="bottom") +
+    #   scale_fill_manual("Legend", values = c("Precipitation" = "cyan", "PET" = "yellow"))+
+    #   scale_color_manual("",values = c("Temperature" = "red", "Mean" = "red", "Low" = "red", "High"="red","Growth"="darkgreen"))+
+    #   scale_shape_manual("",values = c("Mean" = 19, "Low" = 6, "High"=2))+
+    #   coord_fixed(ratio = 1/9,xlim = c(1,12), ylim = c(-20, 43))+
+    #   labs(title = paste0("Climate of ",station0$Station_Name, ": est. @ ",Elev, ' m (', periods[periods$speriod %in% timeperiod,]$period,')'))# ,  subtitle = my_text1)
     
 #climplot2 ----
     a1=data.frame(x=c(-50,-50,0,0), y=c(0,6,6,0))
