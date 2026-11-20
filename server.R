@@ -300,9 +300,9 @@ shinyServer(function(input, output, session) {
     Deficit <- max(PET - AET, 0)
     Surplus <- max(MAP - AET, 0)
     Sd <- 100-sAET/(PET+0.01)*100
-    Sindex <- (PET - Deficit)/(PET +0.0001)
+    Sindex <- (1-(PET - Deficit)/(PET +0.0001))*100
     PPETRatio <- MAP/(PET +0.0001)
-    Mindex <- PPETRatio/(PPETRatio+1)
+    Mindex <- (PPETRatio/(PPETRatio+1))*100
     SLabel <- paste0(station0$Station_Name, " @ ",Elev, ' m (', periods[periods$speriod %in% timeperiod,]$period,')')
     # Additional indices
     
@@ -314,7 +314,7 @@ shinyServer(function(input, output, session) {
     StationMeans$SP3 <- round(ifelse(StationMeans$SP2 >= 1, ifelse(StationMeans$Deficit >= 150 | StationMeans$PPETRatio < 1, pmax(150/(StationMeans$Deficit+150)),1),0),15)
     StationMeans$SP4 <- round(ifelse(StationMeans$SP3 >= 1, pmin(1-StationMeans$Deficit/150),0),15)
     StationMeans$SPindex <- StationMeans$SP1 + StationMeans$SP2 + StationMeans$SP3 + StationMeans$SP4 + 1 #Seasonal precipitation index
-    StationMeans$Cindex <- pmin(StationMeans$Tclx+15, StationMeans$Tc) #Cold index
+    StationMeans$Cindex <- pmin(StationMeans$Tcl+3, StationMeans$Tc) #Cold index
     StationMeans$Dindex <- StationMeans$Deficit/(StationMeans$Deficit + 100)
     StationMeans$Sindex <- StationMeans$Surplus/(StationMeans$Surplus + 100)
     StationMeans$Aindex <- StationMeans$p3AET/(StationMeans$p3AET + 100)
@@ -329,14 +329,8 @@ shinyServer(function(input, output, session) {
     
     
     #classify ----
-    Seasonalilty <- ifelse(Deficit < 150 & PPETRatio>=1, "Isopluvial",
-                           ifelse(Surplus < 25 & PPETRatio < 0.5, ifelse(p3AET < 180, "Isoxeric","Pluvioxeric"),
-                                  ifelse(p3AET < 180,"Xerothermic","Pluviothermic")))
-    
-    
-    
-    
-    
+    Seasonalilty <- ifelse(Sindex < 25 & PPETRatio>=1, "Isopluvial",
+                                  ifelse(MAAT >= Tp,"Xerothermic","Pluviothermic"))
     
     
     MRegime <- ifelse(PPETRatio>=2,"Perhumid",
@@ -348,24 +342,17 @@ shinyServer(function(input, output, session) {
                                                          ifelse(PPETRatio>=0.125,"Arid","Perarid"
                                                          )))))))
     
-    
+    cindex <- pmin(Tc,Tcl+3)
     BioTemperatureC <-
-      ifelse(Tc >= 20 & Tclx >=5,"Megathermal",
-             ifelse(Tc >= 15 & Tclx >=0,"Megathermal",
-                    ifelse(Tc >= 10 & Tclx >=-5,"Mesothermal",
-                           ifelse(Tc >= 5 & Tclx >=-10,"Mesothermal",
-                                  ifelse(Tc >= 0 & Tclx >=-15,"Mesothermal",
-                                         ifelse(Tc >= -5 & Tclx >=-20,"Microthermal",
-                                                ifelse(Tc >= -10 & Tclx >=-25,"Microthermal",
-                                                       ifelse(Tc >= -25 & Tclx >=-40,"Microthermal","Microthermal"
-                                                       ))))))))
+      ifelse(cindex >= 12 | Tg-cindex < 6,"Tropical",
+             ifelse((cindex >= 0 | Tg-cindex < 12) & Tg < 18,"Oceanic",
+                    ifelse(cindex >= 0 | Tg-cindex < 12,"Subtropical",'Continental')))
     
     BioTemperatureW <- ifelse(Tg >= 24,"Hot (Lowland)",
                               ifelse(Tg >= 18,"Warm (Premontane)",
-                                     ifelse(Tg >= 15,"Mild (Montane)",
-                                            ifelse(Tg >= 12,"Mild (Montane)",
-                                                   ifelse(Tg >= 6,"Cool (Subalpine)","Cold (Alpine)"
-                                                   )))))
+                                     ifelse(Tg >= 12,"Mild (Montane)",
+                                            ifelse(Tg >= 6,"Cool (Subalpine)","Cold (Alpine)"
+                                            ))))
     Climatetext<-paste(BioTemperatureW," ",BioTemperatureC,", ",MRegime," ",Seasonalilty, sep="" )
     
     #assemble supplemental summary
@@ -376,7 +363,7 @@ shinyServer(function(input, output, session) {
                     "Warm Month: ", round(Tw,1),"°C; High: ",round(Twh,1),"°C; ", "Cold Month: ", round(Tc,1),"°C; Low: ",round(Tcl,1),"°C","\n",
                     "Growing Season Temperature: ",round(Tg,digits=1),"°C; Annual Extreme Low: ", round(Tclx,1),"°C","\n",
                     "P/PET: ", round(PPETRatio,2),"; Surplus: ", round(Surplus,0)," mm; Deficit: ", round(Deficit,0)," mm;"," Seasonal Soil Moisture Deficit: ", round(Sd,0)," mm;\n",
-                    "Annual Moisture Index:", round(Mindex,2), "; Seasonal Moisture Index: ", round(Sindex,2),"; Precipitation weighted temperature: ", round(Tp,0), "°C", "; Peak 3-month AET: ", round(p3AET,0), " mm","\n", 
+                    "Moisture Index:", round(Mindex,0), "%; Seasonal Drought Index: ", round(Sindex,0),"%; Ppt-wt-temp: ", round(Tp,1), "°C", "; Peak 3-month AET: ", round(p3AET,0), " mm","\n", 
                     Climatetext,sep="")
     #, "SPindex: ",round(SPindex,2),"; Cindex: ",round(Cindex,2),"\n"
     retro <- paste("Lat: ",round(Lat,digits=2),"°;  Lon: ", round(Lon,digits=2),"°;  Elev: ",round(Elev/0.3048,digits=0)," ft","\n",
@@ -384,7 +371,7 @@ shinyServer(function(input, output, session) {
                    "Warm Month: ", round(Tw*1.8+32,0),"°F; High: ",round(Twh*1.8+32,0),"°F; ", "Cold Month: ", round(Tc*1.8+32,0),"°F; Low: ",round(Tcl*1.8+32,0),"°F","\n",
                    "Growing Season Temperature: ",round(Tg*1.8+32,digits=0),"°F; Annual Extreme Low: ", round(Tclx*1.8+32,0),"°F","\n",
                    "P/PET: ", round(PPETRatio,2),"; Surplus: ", round(Surplus/25.4,0)," in; Deficit: ", round(Deficit/25.4,0)," in; ", "Seasonal Soil Moisture Deficit: ", round(Sd/25.4,0)," in;\n",
-                   "Annual Moisture Index:", round(Mindex,2), "; Seasonal Moisture Index: ", round(Sindex,2),"; Precipitation weighted temperature: ", round(Tp*1.8+32,0), "°F", "; Peak 3-month AET: ", round(p3AET/25.4,0), " in","\n",
+                   "Annual Moisture Index:", round(Mindex,0), "; Seasonal Drought Index: ", round(Sindex,0),"%; Ppt-wt-temp: ", round(Tp*1.8+32,0), "°F", "; Peak 3-month AET: ", round(p3AET/25.4,0), " in","\n",
                    Climatetext,sep="")
     my_text2 <- if(input$RadioUnits == 'USC'){retro} else {metric}
     rv$my_text2 <- my_text2
@@ -439,33 +426,36 @@ shinyServer(function(input, output, session) {
     
     
     #climplot2 ----
-    a1=data.frame(x=c(-50,-50,0,0), y=c(0,6,6,0))
+    a1=data.frame(x=c(-50,-50,0,-6), y=c(0,6,6,0))
     a2=data.frame(x=c(-50,-50,0,-6), y=c(6,12,12,6))
     a3=data.frame(x=c(-50,-50,0,0), y=c(12,36,36,12))
-    a4=data.frame(x=c(0,0,6,0), y=c(0,6,6,0))
-    a5=data.frame(x=c(-6,0,0,18,6), y=c(6,12,18,18,6))
-    a6=data.frame(x=c(0,0,15,15), y=c(18,36,36,18))
-    a7=data.frame(x=c(15,15,36,18), y=c(18,36,36,18))
-    
+    a4=data.frame(x=c(-6,0,6,0), y=c(0,6,6,0))
+    a5=data.frame(x=c(-6,0,0,12,0), y=c(6,12,18,18,6))
+    a6=data.frame(x=c(0,0,12,12), y=c(18,36,36,18))
+    a7=data.frame(x=c(0,12,12,24,18,6), y=c(6,18,24,24,18,6))
+    a8=data.frame(x=c(12,12,36,24), y=c(24,36,36,24))
+    breaksx=seq(-60,30,6)
+    breaksy=c(0,6,12,18,24,30)
     ll1 <- data.frame(x=c(-50,6), y=c(6,6))
     ll2 <- data.frame(x=c(0,0), y=c(0,36))
-    ll3 <- data.frame(x=c(15,15), y=c(18,36))
+    ll3 <- data.frame(x=c(12,12), y=c(18,36))
     l1 <- data.frame(x=c(-50,12), y=c(12,12))
-    l2 <- data.frame(x=c(-25,0), y=c(15,15))
-    l3 <- data.frame(x=c(-10,18), y=c(18,18))
-    l4 <- data.frame(x=c(15,24), y=c(24,24))
-    l5 <- data.frame(x=c(-10,-10), y=c(18,36))
+    l2 <- data.frame(x=c(-12,0), y=c(0,12))
+    l3 <- data.frame(x=c(-50,18), y=c(18,18))
+    l4 <- data.frame(x=c(-50,24), y=c(24,24))
+    l5 <- data.frame(x=c(-6,12), y=c(0,18))
     l6 <- data.frame(x=c(-25,-25), y=c(15,36))
     l7 <- data.frame(x=c(5,5), y=c(18,36))
-    l8 <- data.frame(x=c(15,15), y=c(24,36))
+    l8 <- data.frame(x=c(12,12), y=c(24,36))
     climplot2 <-  ggplot() +
       geom_polygon(data=a1, mapping=aes(x=x, y=y, fill='alpine'),alpha = 0.5)+
       geom_polygon(data=a2, mapping=aes(x=x, y=y, fill='boreal'),alpha = 0.5)+
-      geom_polygon(data=a3, mapping=aes(x=x, y=y, fill='temperate'),alpha = 0.5)+
+      geom_polygon(data=a3, mapping=aes(x=x, y=y, fill='continental'),alpha = 0.5)+
       geom_polygon(data=a4, mapping=aes(x=x, y=y, fill='andean'),alpha = 0.5)+
       geom_polygon(data=a5, mapping=aes(x=x, y=y, fill='oceanic'),alpha = 0.5)+
       geom_polygon(data=a6, mapping=aes(x=x, y=y, fill='subtropical'),alpha = 0.5)+
-      geom_polygon(data=a7, mapping=aes(x=x, y=y, fill='tropical'),alpha = 0.5)+
+      geom_polygon(data=a7, mapping=aes(x=x, y=y, fill='montane'),alpha = 0.5)+
+      geom_polygon(data=a8, mapping=aes(x=x, y=y, fill='tropical'),alpha = 0.5)+
       
       geom_line(data=ll1, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
       geom_line(data=ll2, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
@@ -475,17 +465,16 @@ shinyServer(function(input, output, session) {
       geom_line(data=l3, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
       geom_line(data=l4, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
       geom_line(data=l5, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-      geom_line(data=l6, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
-      geom_line(data=l7, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
       geom_line(data=l8, mapping=aes(x=x, y=y),alpha = 0.2, color='black', linetype='solid')+
       geom_point(data=StationMeans, mapping=aes(x=Cindex, y=Tg, color = "currentMLR"), size=2, shape=16)+
-      scale_fill_manual("Thermozone", values = c("alpine" = "pink",
-                                                 "boreal" = "darkgreen",
-                                                 "temperate" = "greenyellow",
-                                                 "andean" = "lightblue",
-                                                 "oceanic" = "darkcyan",
-                                                 "subtropical" = "orange",
-                                                 "tropical" = "darkred"
+      scale_fill_manual("Thermozone", values = c("alpine" = "lightblue",
+                                             "boreal" = "darkgreen",
+                                             "continental" = "yellowgreen",
+                                             "andean" = "pink",
+                                             "oceanic" = "darkcyan",
+                                             "subtropical" = "orange",
+                                             "montane" = "pink4",
+                                             "tropical" = "darkred"
                                                  
       ))+
       scale_color_manual(values=c("black", "red"),
@@ -493,15 +482,14 @@ shinyServer(function(input, output, session) {
                          breaks=c("currentMLR", "savedMLRA"),
                          labels=c(currentMLR, savedMLRA))+
       
-      scale_x_continuous(name= "Coldest Month (Annual Extreme Minimum)",
-                         breaks=c(-45,-40, -35, -30, -25, -20,-15, -10,-5, 0,5, 10,15, 20,25,30),
-                         labels=c('-45 (-60)','-40 (-55)', '-35 (-50)','-30 (-45)', '-25 (-40)','-20 (-35)','-15 (-30)','-10 (-25)',
-                                  '-5 (-20)','0 (-15)','5 (-10)','10 (-5)','15 (0)','20 (5)','25 (10)','30 (15)'))+
-      scale_y_continuous(name= "Growing Season", breaks=c(0,6,12,18,24,30))+
+      scale_x_continuous(name= "Coldest Month (Daily Minimum)",
+                         breaks=breaksx,
+                         labels=paste0(breaksx,'(', breaksx-3,')'))+
+      scale_y_continuous(name= "Growing Season", breaks=breaksy, expand=FALSE)+
       coord_fixed(ratio = 1/1,xlim = c(-45,30), ylim = c(0, 33))+
       labs(title = paste("Climate of ",StationMeans[1,]$SLabel, "", sep=""))+
       theme_bw()+
-      theme(legend.position='right',axis.text.x = element_text(angle = 90, vjust = 0, hjust = 0),
+      theme(legend.position='right',axis.text.x = element_text(angle = 90, vjust = 0, hjust = 1),
             panel.grid.major = element_line(), panel.grid.minor = element_blank())
     
     if(input$saveselect == TRUE) #Decide whether to plot comparison graph.
@@ -538,7 +526,7 @@ shinyServer(function(input, output, session) {
       geom_polygon(data=bmm4, mapping=aes(x=x, y=y, fill='subhumid'),alpha = 0.1)+
       geom_polygon(data=bmm5, mapping=aes(x=x, y=y, fill='humid'),alpha = 0.1)+
       geom_polygon(data=bmm6, mapping=aes(x=x, y=y, fill='perhumid'),alpha = 0.1)+
-      geom_point(data=StationMeans, mapping=aes(x=Mindex, y=Tg, color = "currentMLR"), size=2, shape = 16)+
+      geom_point(data=StationMeans, mapping=aes(x=Mindex/100, y=Tg, color = "currentMLR"), size=2, shape = 16)+
       scale_fill_manual("Legend", values = c("alpine" = "cyan",
                                              "cool" = "green",
                                              "mild" = "yellow",
@@ -567,7 +555,7 @@ shinyServer(function(input, output, session) {
             axis.text.y = element_text(vjust = 0), 
             panel.grid.major = element_line(), panel.grid.minor = element_blank())
     if(input$saveselect == TRUE) #Decide whether to plot comparison graph.
-    {climplot4 <- climplot4+geom_point(data=savedselect, mapping=aes(x=Mindex, y=Tg, color = "savedMLRA"), size=2, shape = 1)}
+    {climplot4 <- climplot4+geom_point(data=savedselect, mapping=aes(x=Mindex/100, y=Tg, color = "savedMLRA"), size=2, shape = 1)}
     
     
     
