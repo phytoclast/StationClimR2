@@ -314,7 +314,7 @@ shinyServer(function(input, output, session) {
     StationMeans$SP3 <- round(ifelse(StationMeans$SP2 >= 1, ifelse(StationMeans$Deficit >= 150 | StationMeans$PPETRatio < 1, pmax(150/(StationMeans$Deficit+150)),1),0),15)
     StationMeans$SP4 <- round(ifelse(StationMeans$SP3 >= 1, pmin(1-StationMeans$Deficit/150),0),15)
     StationMeans$SPindex <- StationMeans$SP1 + StationMeans$SP2 + StationMeans$SP3 + StationMeans$SP4 + 1 #Seasonal precipitation index
-    StationMeans$Cindex <- pmin(StationMeans$Tcl+3, StationMeans$Tc) #Cold index
+    StationMeans$Cindex <- pmin(pmax(StationMeans$Tcl,StationMeans$Tc-6)+3, StationMeans$Tc) #Cold index
     StationMeans$Dindex <- StationMeans$Deficit/(StationMeans$Deficit + 100)
     StationMeans$Sindex <- StationMeans$Surplus/(StationMeans$Surplus + 100)
     StationMeans$Aindex <- StationMeans$p3AET/(StationMeans$p3AET + 100)
@@ -342,7 +342,7 @@ shinyServer(function(input, output, session) {
                                                          ifelse(PPETRatio>=0.125,"Arid","Perarid"
                                                          )))))))
     
-    cindex <- pmin(Tc,Tcl+3)
+    cindex <- pmin(Tc,pmax(Tcl, Tc-6)+3)
     BioTemperatureC <-
       ifelse(cindex >= 12 | Tg-cindex < 6,"Tropical",
              ifelse((cindex >= 0 | Tg-cindex < 12) & Tg < 18,"Oceanic",
